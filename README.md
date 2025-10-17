@@ -501,3 +501,91 @@ git checkout -b feature/tree-step3-tree-store
 - [ ] 通过单元测试验证数据模型完整性
 
 ---
+
+## Step 4: 实现工具函数（数据结构 - util.js）
+
+### 📋 本步目标
+
+实现通用工具函数，为数据模型和视图层提供支持。
+
+### ✅ 要达到的效果
+
+- 节点标记功能（markNodeData）
+- 节点 key 获取（getNodeKey）
+- 组件查找工具（findNearestComponent）
+
+### 🎯 该做什么
+
+1. **实现节点标记**：
+
+   ```javascript
+   export const NODE_KEY = '$treeNodeId'
+
+   export const markNodeData = function (node, data) {
+     if (!data || data[NODE_KEY]) return
+     Object.defineProperty(data, NODE_KEY, {
+       value: node.id,
+       enumerable: false, // 不可枚举
+       configurable: false, // 不可配置
+       writable: false, // 不可写
+     })
+   }
+   ```
+
+2. **实现 key 获取**：
+
+   ```javascript
+   export const getNodeKey = function (key, data) {
+     if (!key) return data[NODE_KEY]
+     return data[key]
+   }
+   ```
+
+3. **实现组件查找**（用于拖拽）：
+
+   ```javascript
+   export const findNearestComponent = (element, componentName) => {
+     let target = element
+     while (target && target.tagName !== 'BODY') {
+       if (target.__vue__ && target.__vue__.$options.name === componentName) {
+         return target.__vue__
+       }
+       target = target.parentNode
+     }
+     return null
+   }
+   ```
+
+4. **在 Node 构造函数中调用 markNodeData**：
+
+   ```javascript
+   // node.js
+   import { markNodeData, NODE_KEY } from './util';
+
+   constructor(options) {
+     // ... 其他代码
+     if (!Array.isArray(this.data)) {
+       markNodeData(this, this.data);
+     }
+   }
+   ```
+
+### ❌ 不该做什么
+
+- ❌ 不要添加不必要的工具函数
+- ❌ 不要在工具函数中处理业务逻辑
+
+### 🌿 分支命名
+
+```bash
+git checkout -b feature/tree-step4-utils
+```
+
+### ✔️ 验收标准
+
+- [ ] markNodeData 正确为数据对象添加不可枚举的节点 ID
+- [ ] getNodeKey 可以根据配置获取节点唯一标识
+- [ ] findNearestComponent 可以查找最近的 Vue 组件实例
+- [ ] 通过单元测试验证工具函数
+
+---
