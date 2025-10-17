@@ -18,40 +18,10 @@ export function formatNumber(num) {
  */
 export function debounce(fn, delay = 300) {
   let timer = null
-  return function(...args) {
+  return function (...args) {
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => {
       fn.apply(this, args)
     }, delay)
   }
 }
-
-/**
- * 深拷贝对象
- * @param {*} obj - 要拷贝的对象
- * @returns {*} 拷贝后的对象
- */
-export function deepClone(obj) {
-  if (obj === null || typeof obj !== 'object') {
-    return obj
-  }
-  
-  if (obj instanceof Date) {
-    return new Date(obj.getTime())
-  }
-  
-  if (obj instanceof Array) {
-    return obj.map(item => deepClone(item))
-  }
-  
-  if (obj instanceof Object) {
-    const clonedObj = {}
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        clonedObj[key] = deepClone(obj[key])
-      }
-    }
-    return clonedObj
-  }
-}
-
