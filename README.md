@@ -589,3 +589,230 @@ git checkout -b feature/tree-step4-utils
 - [ ] 通过单元测试验证工具函数
 
 ---
+
+## Step 5: 实现基础树渲染（架构 - 递归组件）
+
+### 📋 本步目标
+
+将数据模型与视图层连接，实现树的基础渲染，展示树形结构。
+
+### ✅ 要达到的效果
+
+- tree.vue 创建 TreeStore 实例并渲染根节点的子节点
+- tree-node.vue 递归渲染节点，显示节点文本
+- 树形结构正确显示，层级缩进清晰
+
+### 🎯 该做什么
+
+1. **完善 tree.vue**：
+
+   ```vue
+   <template>
+     <div class="el-tree" role="tree">
+       <el-tree-node
+         v-for="child in root.childNodes"
+         :node="child"
+         :props="props"
+         :key="getNodeKey(child)"
+       ></el-tree-node>
+
+       <div class="el-tree__empty-block" v-if="isEmpty">
+         <span class="el-tree__empty-text">{{ emptyText }}</span>
+       </div>
+     </div>
+   </template>
+
+   <script>
+   import TreeStore from './model/tree-store'
+   import { getNodeKey } from './model/util'
+   import ElTreeNode from './tree-node.vue'
+
+   export default {
+     name: 'ElTree',
+
+     components: {
+       ElTreeNode,
+     },
+
+     props: {
+       data: {
+         type: Array,
+       },
+       emptyText: {
+         type: String,
+         default: '暂无数据',
+       },
+       nodeKey: String,
+       props: {
+         default() {
+           return {
+             children: 'children',
+             label: 'label',
+             disabled: 'disabled',
+           }
+         },
+       },
+       defaultExpandAll: Boolean,
+     },
+
+     data() {
+       return {
+         store: null,
+         root: null,
+       }
+     },
+
+     computed: {
+       isEmpty() {
+         const { childNodes } = this.root
+         return !childNodes || childNodes.length === 0
+       },
+     },
+
+     methods: {
+       getNodeKey(node) {
+         return getNodeKey(this.nodeKey, node.data)
+       },
+     },
+
+     created() {
+       this.isTree = true
+
+       this.store = new TreeStore({
+         key: this.nodeKey,
+         data: this.data,
+         props: this.props,
+         defaultExpandAll: this.defaultExpandAll,
+       })
+
+       this.root = this.store.root
+     },
+   }
+   </script>
+   ```
+
+2. **完善 tree-node.vue**（递归渲染）：
+
+   ```vue
+   <template>
+     <div
+       class="el-tree-node"
+       v-show="node.visible"
+       :class="{
+         'is-expanded': expanded,
+         'is-current': node.isCurrent,
+         'is-hidden': !node.visible,
+       }"
+       role="treeitem"
+     >
+       <div
+         class="el-tree-node__content"
+         :style="{ 'padding-left': (node.level - 1) * 18 + 'px' }"
+       >
+         <!-- 展开图标 -->
+         <span
+           :class="[
+             { 'is-leaf': node.isLeaf, expanded: !node.isLeaf && expanded },
+             'el-tree-node__expand-icon',
+             'el-icon-caret-right',
+           ]"
+         ></span>
+
+         <!-- 节点文本 -->
+         <span class="el-tree-node__label">{{ node.label }}</span>
+       </div>
+
+       <!-- 递归渲染子节点 -->
+       <div class="el-tree-node__children" v-show="expanded" role="group">
+         <el-tree-node
+           v-for="child in node.childNodes"
+           :node="child"
+           :key="getNodeKey(child)"
+         ></el-tree-node>
+       </div>
+     </div>
+   </template>
+
+   <script>
+   import { getNodeKey } from './model/util'
+
+   export default {
+     name: 'ElTreeNode',
+
+     props: {
+       node: {
+         default() {
+           return {}
+         },
+       },
+     },
+
+     data() {
+       return {
+         tree: null,
+         expanded: false,
+       }
+     },
+
+     watch: {
+       'node.expanded'(val) {
+         this.$nextTick(() => (this.expanded = val))
+       },
+     },
+
+     methods: {
+       getNodeKey(node) {
+         return getNodeKey(this.tree.nodeKey, node.data)
+       },
+     },
+
+     created() {
+       const parent = this.$parent
+
+       // 向上查找 tree 根组件
+       if (parent.isTree) {
+         this.tree = parent
+       } else {
+         this.tree = parent.tree
+       }
+
+       // 同步展开状态
+       if (this.node.expanded) {
+         this.expanded = true
+       }
+     },
+   }
+   </script>
+   ```
+
+3. **处理 defaultExpandAll**：
+   ```javascript
+   // node.js - constructor 中
+   if (store.defaultExpandAll) {
+     this.expanded = true
+   }
+   ```
+
+### ❌ 不该做什么
+
+- ❌ 不要实现点击交互
+- ❌ 不要实现展开/收起动画
+- ❌ 不要实现复选框
+- ❌ 不要处理拖拽
+
+### 🌿 分支命名
+
+```bash
+git checkout -b feature/tree-step5-basic-render
+```
+
+### ✔️ 验收标准
+
+- [ ] 树形结构正确渲染在页面上
+- [ ] 节点层级缩进正确（每层 18px）
+- [ ] 节点文本正确显示（支持自定义 label 字段）
+- [ ] defaultExpandAll 配置生效
+- [ ] 空数据时显示"暂无数据"提示
+- [ ] 递归组件工作正常，支持任意层级
+
+---
