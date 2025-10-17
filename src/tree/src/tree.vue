@@ -1,5 +1,11 @@
 <template>
-  <div class="el-tree" role="tree">
+  <div
+    class="el-tree"
+    :class="{
+      'el-tree--highlight-current': highlightCurrent,
+    }"
+    role="tree"
+  >
     <el-tree-node
       v-for="child in root.childNodes"
       :key="getNodeKey(child)"
@@ -50,6 +56,8 @@ export default {
       type: Boolean,
       default: true,
     },
+    highlightCurrent: Boolean,
+    currentNodeKey: [String, Number],
   },
 
   emits: ['node-expand', 'node-collapse', 'node-click', 'current-change'],
@@ -58,6 +66,7 @@ export default {
     return {
       store: null,
       root: null,
+      currentNode: null,
     }
   },
 
@@ -76,6 +85,7 @@ export default {
       data: this.data,
       props: this.props,
       defaultExpandAll: this.defaultExpandAll,
+      currentNodeKey: this.currentNodeKey,
     })
 
     this.root = this.store.root
@@ -88,6 +98,34 @@ export default {
 
     handleNodeExpand(nodeData, node, instance) {
       this.$emit('node-expand', nodeData, node, instance)
+    },
+
+    getCurrentNode() {
+      const currentNode = this.store.getCurrentNode()
+      return currentNode ? currentNode.data : null
+    },
+
+    getCurrentKey() {
+      if (!this.nodeKey)
+        throw new Error('[Tree] nodeKey is required in getCurrentKey')
+      const currentNode = this.getCurrentNode()
+      return currentNode ? currentNode[this.nodeKey] : null
+    },
+
+    setCurrentNode(node) {
+      if (!this.nodeKey)
+        throw new Error('[Tree] nodeKey is required in setCurrentNode')
+      this.store.setUserCurrentNode(node)
+    },
+
+    setCurrentKey(key) {
+      if (!this.nodeKey)
+        throw new Error('[Tree] nodeKey is required in setCurrentKey')
+      this.store.setCurrentNodeKey(key)
+    },
+
+    getNode(data) {
+      return this.store.getNode(data)
     },
   },
 }

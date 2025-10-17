@@ -944,3 +944,162 @@ git checkout -b feature/tree-step6-expand-collapse
 - [] 叶子节点不显示展开图标
 
 ---
+
+## Step 7: 实现节点选中高亮（架构 - 状态管理）
+
+### 📋 本步目标
+
+实现节点的点击选中功能，当前选中的节点高亮显示。
+
+### ✅ 要达到的效果
+
+- 点击节点可以选中该节点
+- 选中的节点背景高亮
+- 支持 highlightCurrent 配置控制是否高亮
+- 支持 currentNodeKey 配置默认选中节点
+- 提供 setCurrentKey、getCurrentKey 等 API
+
+### 🎯 该做什么
+
+1. **添加 props 配置**：
+
+   ```javascript
+   // tree.vue
+   props: {
+     highlightCurrent: Boolean,
+     currentNodeKey: [String, Number]
+   },
+
+   data() {
+     return {
+       store: null,
+       root: null,
+       currentNode: null
+     };
+   }
+   ```
+
+2. **在 TreeStore 中初始化当前节点**：
+
+   ```javascript
+   // tree-store.js - constructor
+   this.currentNodeKey = options.currentNodeKey
+
+   // node.js - constructor
+   if (
+     key &&
+     store.currentNodeKey !== undefined &&
+     this.key === store.currentNodeKey
+   ) {
+     store.currentNode = this
+     store.currentNode.isCurrent = true
+   }
+   ```
+
+3. **实现节点点击选中**：
+
+   ```javascript
+   // tree-node.vue
+   methods: {
+     handleClick() {
+       const store = this.tree.store;
+       store.setCurrentNode(this.node);
+       this.tree.$emit('current-change', store.currentNode ? store.currentNode.data : null, store.currentNode);
+       this.tree.currentNode = this;
+
+       if (this.tree.expandOnClickNode) {
+         this.handleExpandIconClick();
+       }
+
+       this.tree.$emit('node-click', this.node.data, this.node, this);
+     }
+   }
+   ```
+
+4. **添加高亮样式类**：
+
+   ```vue
+   <!-- tree-node.vue -->
+   <div
+     class="el-tree-node"
+     :class="{
+       'is-expanded': expanded,
+       'is-current': node.isCurrent,
+       'is-hidden': !node.visible
+     }"
+   >
+   ```
+
+   ```vue
+   <!-- tree.vue -->
+   <div
+     class="el-tree"
+     :class="{
+       'el-tree--highlight-current': highlightCurrent
+     }"
+   >
+   ```
+
+5. **提供外部 API**：
+
+   ```javascript
+   // tree.vue
+   methods: {
+     getCurrentNode() {
+       const currentNode = this.store.getCurrentNode();
+       return currentNode ? currentNode.data : null;
+     },
+
+     getCurrentKey() {
+       if (!this.nodeKey) throw new Error('[Tree] nodeKey is required in getCurrentKey');
+       const currentNode = this.getCurrentNode();
+       return currentNode ? currentNode[this.nodeKey] : null;
+     },
+
+     setCurrentNode(node) {
+       if (!this.nodeKey) throw new Error('[Tree] nodeKey is required in setCurrentNode');
+       this.store.setUserCurrentNode(node);
+     },
+
+     setCurrentKey(key) {
+       if (!this.nodeKey) throw new Error('[Tree] nodeKey is required in setCurrentKey');
+       this.store.setCurrentNodeKey(key);
+     },
+
+     getNode(data) {
+       return this.store.getNode(data);
+     }
+   }
+   ```
+
+6. **在 TreeStore 中实现辅助方法**：
+   ```javascript
+   // tree-store.js
+   setUserCurrentNode(node) {
+     const key = node[this.key];
+     const currNode = this.nodesMap[key];
+     this.setCurrentNode(currNode);
+   }
+   ```
+
+### ❌ 不该做什么
+
+- ❌ 不要实现多选功能
+- ❌ 不要实现右键菜单
+- ❌ 不要实现节点编辑
+
+### 🌿 分支命名
+
+```bash
+git checkout -b feature/tree-step7-node-select
+```
+
+### ✔️ 验收标准
+
+- [ ] 点击节点可以选中并高亮
+- [ ] highlightCurrent 配置生效
+- [ ] currentNodeKey 可以设置默认选中节点
+- [ ] current-change 和 node-click 事件正常触发
+- [ ] setCurrentKey、getCurrentKey 等 API 工作正常
+
+---

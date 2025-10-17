@@ -304,5 +304,32 @@ describe('Tree 容器组件 - 基础功能', () => {
       expect(key).toBe(node.id)
     })
   })
+
+  describe('当前节点 API (Step 7)', () => {
+    it('应该有 getCurrentNode 方法', () => {
+      const wrapper = mount(Tree)
+      expect(typeof wrapper.vm.getCurrentNode).toBe('function')
+    })
+
+    it('应该有 getCurrentKey 方法', () => {
+      const wrapper = mount(Tree)
+      expect(typeof wrapper.vm.getCurrentKey).toBe('function')
+    })
+
+    it('应该有 setCurrentNode 方法', () => {
+      const wrapper = mount(Tree)
+      expect(typeof wrapper.vm.setCurrentNode).toBe('function')
+    })
+
+    it('应该有 setCurrentKey 方法', () => {
+      const wrapper = mount(Tree)
+      expect(typeof wrapper.vm.setCurrentKey).toBe('function')
+    })
+
+    it('应该有 getNode 方法', () => {
+      const wrapper = mount(Tree)
+      expect(typeof wrapper.vm.getNode).toBe('function')
+    })
+  })
 })
 

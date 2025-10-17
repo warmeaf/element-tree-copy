@@ -59,6 +59,17 @@ export default class Node {
     }
     store.registerNode(this);
 
+    // 检查是否是当前节点
+    const key = store.key;
+    if (
+      key &&
+      store.currentNodeKey !== undefined &&
+      this.key === store.currentNodeKey
+    ) {
+      store.currentNode = this;
+      store.currentNode.isCurrent = true;
+    }
+
     // 设置数据（如果不是懒加载）
     if (store.lazy !== true && this.data) {
       this.setData(this.data);

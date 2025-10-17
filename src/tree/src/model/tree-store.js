@@ -122,5 +122,12 @@ export default class TreeStore {
       this.setCurrentNode(node);
     }
   }
+
+  // 通过用户数据对象设置当前节点
+  setUserCurrentNode(node) {
+    const key = node[this.key];
+    const currNode = this.nodesMap[key];
+    this.setCurrentNode(currNode);
+  }
 }
 
