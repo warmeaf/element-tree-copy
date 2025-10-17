@@ -323,3 +323,181 @@ git checkout -b feature/tree-step2-node-model
 - [ ] 通过单元测试验证基本功能
 
 ---
+
+## Step 3: 实现 TreeStore 状态管理（数据结构 - TreeStore 类）
+
+### 📋 本步目标
+
+实现 TreeStore 类，作为全局状态管理中心，管理所有节点实例。
+
+### ✅ 要达到的效果
+
+- TreeStore 可以接收配置参数并初始化
+- 创建根节点（root），并递归创建整棵树
+- 维护 nodesMap 映射表，实现快速节点查找
+- 提供节点的增删改查方法
+
+### 🎯 该做什么
+
+1. **实现 TreeStore 构造函数**：
+
+   ```javascript
+   import Node from './node'
+   import { getNodeKey } from './util'
+
+   export default class TreeStore {
+     constructor(options) {
+       this.currentNode = null
+       this.currentNodeKey = null
+
+       // 复制配置
+       for (let option in options) {
+         if (options.hasOwnProperty(option)) {
+           this[option] = options[option]
+         }
+       }
+
+       // 节点映射表
+       this.nodesMap = {}
+
+       // 创建根节点
+       this.root = new Node({
+         data: this.data,
+         store: this,
+       })
+     }
+   }
+   ```
+
+2. **实现节点注册和注销**：
+
+   ```javascript
+   registerNode(node) {
+     const key = this.key;
+     if (!key || !node || !node.data) return;
+
+     const nodeKey = node.key;
+     if (nodeKey !== undefined) {
+       this.nodesMap[node.key] = node;
+     }
+   }
+
+   deregisterNode(node) {
+     const key = this.key;
+     if (!key || !node || !node.data) return;
+
+     // 递归注销子节点
+     node.childNodes.forEach(child => {
+       this.deregisterNode(child);
+     });
+
+     delete this.nodesMap[node.key];
+   }
+   ```
+
+3. **实现节点查找**：
+
+   ```javascript
+   getNode(data) {
+     if (data instanceof Node) return data;
+     const key = typeof data !== 'object' ? data : getNodeKey(this.key, data);
+     return this.nodesMap[key] || null;
+   }
+   ```
+
+4. **实现节点增删操作**：
+
+   ```javascript
+   append(data, parentData) {
+     const parentNode = parentData ? this.getNode(parentData) : this.root;
+     if (parentNode) {
+       parentNode.insertChild({ data });
+     }
+   }
+
+   insertBefore(data, refData) {
+     const refNode = this.getNode(refData);
+     refNode.parent.insertBefore({ data }, refNode);
+   }
+
+   insertAfter(data, refData) {
+     const refNode = this.getNode(refData);
+     refNode.parent.insertAfter({ data }, refNode);
+   }
+
+   remove(data) {
+     const node = this.getNode(data);
+     if (node && node.parent) {
+       if (node === this.currentNode) {
+         this.currentNode = null;
+       }
+       node.parent.removeChild(node);
+     }
+   }
+   ```
+
+5. **实现数据更新**：
+
+   ```javascript
+   setData(newVal) {
+     const instanceChanged = newVal !== this.root.data;
+     if (instanceChanged) {
+       this.root.setData(newVal);
+     } else {
+       this.root.updateChildren();
+     }
+   }
+   ```
+
+6. **实现当前节点管理**：
+
+   ```javascript
+   setCurrentNode(currentNode) {
+     const prevCurrentNode = this.currentNode;
+     if (prevCurrentNode) {
+       prevCurrentNode.isCurrent = false;
+     }
+     this.currentNode = currentNode;
+     this.currentNode.isCurrent = true;
+   }
+
+   getCurrentNode() {
+     return this.currentNode;
+   }
+
+   setCurrentNodeKey(key) {
+     if (key === null || key === undefined) {
+       this.currentNode && (this.currentNode.isCurrent = false);
+       this.currentNode = null;
+       return;
+     }
+     const node = this.getNode(key);
+     if (node) {
+       this.setCurrentNode(node);
+     }
+   }
+   ```
+
+### ❌ 不该做什么
+
+- ❌ 不要实现复选框相关方法（getCheckedNodes、setCheckedKeys）
+- ❌ 不要实现过滤功能（filter）
+- ❌ 不要实现懒加载逻辑
+- ❌ 不要实现默认展开/选中的初始化
+
+### 🌿 分支命名
+
+```bash
+git checkout -b feature/tree-step3-tree-store
+```
+
+### ✔️ 验收标准
+
+- [ ] TreeStore 可以接收配置并正确初始化
+- [ ] root 节点创建成功，树结构正确
+- [ ] nodesMap 正确维护所有节点引用
+- [ ] getNode 可以通过 key 或 data 快速查找节点（O(1) 复杂度）
+- [ ] append、remove 等操作正常工作
+- [ ] 通过单元测试验证数据模型完整性
+
+---

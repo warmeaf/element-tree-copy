@@ -131,6 +131,25 @@ export default class Node {
     this.updateLeafState();
   }
 
+  // 在参考节点之前插入子节点
+  insertBefore(child, ref) {
+    let index;
+    if (ref) {
+      index = this.childNodes.indexOf(ref);
+    }
+    this.insertChild(child, index);
+  }
+
+  // 在参考节点之后插入子节点
+  insertAfter(child, ref) {
+    let index;
+    if (ref) {
+      index = this.childNodes.indexOf(ref);
+      if (index !== -1) index += 1;
+    }
+    this.insertChild(child, index);
+  }
+
   // 移除节点
   remove() {
     const parent = this.parent;
