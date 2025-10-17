@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import Tree from '../src/tree.vue'
 import TreeStore from '../src/model/tree-store'
 
-describe('Tree 容器组件 - Step 5 基础渲染', () => {
+describe('Tree 容器组件 - 基础功能', () => {
   describe('基础功能', () => {
     it('应该能够渲染 tree 组件', () => {
       const wrapper = mount(Tree)

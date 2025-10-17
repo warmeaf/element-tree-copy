@@ -816,3 +816,131 @@ git checkout -b feature/tree-step5-basic-render
 - [ ] 递归组件工作正常，支持任意层级
 
 ---
+
+## Step 6: 实现展开收起功能（架构 - 交互逻辑）
+
+### 📋 本步目标
+
+实现节点的展开/收起交互，增加展开收起动画效果。
+
+### ✅ 要达到的效果
+
+- 点击展开图标可以展开/收起子节点
+- 展开收起带有动画过渡效果
+- 支持 expandOnClickNode 配置（点击节点内容也可以展开）
+- 触发 node-expand 和 node-collapse 事件
+
+### 🎯 该做什么
+
+1. **添加展开图标点击事件**：
+
+   ```vue
+   <!-- tree-node.vue -->
+   <span
+     @click.stop="handleExpandIconClick"
+     :class="[
+       { 'is-leaf': node.isLeaf, expanded: !node.isLeaf && expanded },
+       'el-tree-node__expand-icon',
+       'el-icon-caret-right',
+     ]"
+   ></span>
+   ```
+
+2. **实现展开收起逻辑**：
+
+   ```javascript
+   // tree-node.vue
+   methods: {
+     handleExpandIconClick() {
+       if (this.node.isLeaf) return;
+
+       if (this.expanded) {
+         this.tree.$emit('node-collapse', this.node.data, this.node, this);
+         this.node.collapse();
+       } else {
+         this.node.expand();
+         this.$emit('node-expand', this.node.data, this.node, this);
+       }
+     }
+   }
+   ```
+
+3. **添加折叠动画组件**：
+
+   ```vue
+   <!-- tree-node.vue -->
+   <el-collapse-transition>
+     <div
+       class="el-tree-node__children"
+       v-show="expanded"
+       role="group"
+     >
+       <el-tree-node
+         v-for="child in node.childNodes"
+         :node="child"
+         :key="getNodeKey(child)"
+       ></el-tree-node>
+     </div>
+   </el-collapse-transition>
+   ```
+
+4. **在 tree.vue 中监听并转发事件**：
+
+   ```javascript
+   // tree.vue
+   props: {
+     expandOnClickNode: {
+       type: Boolean,
+       default: true
+     }
+   },
+
+   methods: {
+     handleNodeExpand(nodeData, node, instance) {
+       this.$emit('node-expand', nodeData, node, instance);
+     }
+   }
+   ```
+
+5. **添加节点内容点击**：
+
+   ```vue
+   <!-- tree-node.vue -->
+   <div
+     class="el-tree-node__content"
+     @click.stop="handleClick"
+     :style="{ 'padding-left': (node.level - 1) * 18 + 'px' }"
+   >
+   ```
+
+   ```javascript
+   methods: {
+     handleClick() {
+       if (this.tree.expandOnClickNode) {
+         this.handleExpandIconClick();
+       }
+     }
+   }
+   ```
+
+### ❌ 不该做什么
+
+- ❌ 不要实现手风琴模式（accordion）
+- ❌ 不要实现延迟渲染（renderAfterExpand）
+- ❌ 不要实现默认展开节点（defaultExpandedKeys）
+
+### 🌿 分支命名
+
+```bash
+git checkout -b feature/tree-step6-expand-collapse
+```
+
+### ✔️ 验收标准
+
+- [] 点击展开图标可以展开/收起节点
+- [] 展开收起有动画效果
+- [] expandOnClickNode 配置生效
+- [] node-expand 和 node-collapse 事件正常触发
+- [] 叶子节点不显示展开图标
+
+---

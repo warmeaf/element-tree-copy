@@ -5,6 +5,7 @@
       :key="getNodeKey(child)"
       :node="child"
       :props="props"
+      @node-expand="handleNodeExpand"
     />
 
     <div v-if="isEmpty" class="el-tree__empty-block">
@@ -45,7 +46,13 @@ export default {
       },
     },
     defaultExpandAll: Boolean,
+    expandOnClickNode: {
+      type: Boolean,
+      default: true,
+    },
   },
+
+  emits: ['node-expand', 'node-collapse', 'node-click', 'current-change'],
 
   data() {
     return {
@@ -77,6 +84,10 @@ export default {
   methods: {
     getNodeKey(node) {
       return getNodeKey(this.nodeKey, node.data)
+    },
+
+    handleNodeExpand(nodeData, node, instance) {
+      this.$emit('node-expand', nodeData, node, instance)
     },
   },
 }

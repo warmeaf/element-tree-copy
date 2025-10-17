@@ -4,7 +4,7 @@ import Tree from '../src/tree.vue'
 import TreeNode from '../src/tree-node.vue'
 import Node from '../src/model/node'
 
-describe('TreeNode 节点组件 - Step 5 基础渲染', () => {
+describe('TreeNode 节点组件 - 基础渲染', () => {
   // 创建测试用的 Tree 包装器
   const createTreeWrapper = (data, options = {}) => {
     return mount(Tree, {

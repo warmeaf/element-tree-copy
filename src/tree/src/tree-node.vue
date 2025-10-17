@@ -12,6 +12,7 @@
     <div
       class="el-tree-node__content"
       :style="{ 'padding-left': (node.level - 1) * 18 + 'px' }"
+      @click.stop="handleClick"
     >
       <!-- 展开图标 -->
       <span
@@ -19,6 +20,7 @@
           { 'is-leaf': node.isLeaf, expanded: !node.isLeaf && expanded },
           'el-tree-node__expand-icon',
         ]"
+        @click.stop="handleExpandIconClick"
       />
 
       <!-- 节点文本 -->
@@ -26,22 +28,30 @@
     </div>
 
     <!-- 递归渲染子节点 -->
-    <div v-show="expanded" class="el-tree-node__children" role="group">
-      <el-tree-node
-        v-for="child in node.childNodes"
-        :key="getNodeKey(child)"
-        :node="child"
-        :props="props"
-      />
-    </div>
+    <el-collapse-transition>
+      <div v-show="expanded" class="el-tree-node__children" role="group">
+        <el-tree-node
+          v-for="child in node.childNodes"
+          :key="getNodeKey(child)"
+          :node="child"
+          :props="props"
+          @node-expand="handleChildNodeExpand"
+        />
+      </div>
+    </el-collapse-transition>
   </div>
 </template>
 
 <script>
 import { getNodeKey } from './model/util'
+import ElCollapseTransition from './collapse-transition.js'
 
 export default {
   name: 'ElTreeNode',
+
+  components: {
+    ElCollapseTransition,
+  },
 
   props: {
     node: {
@@ -54,6 +64,8 @@ export default {
       type: Object,
     },
   },
+
+  emits: ['node-expand'],
 
   data() {
     return {
@@ -88,7 +100,38 @@ export default {
     getNodeKey(node) {
       return getNodeKey(this.tree.nodeKey, node.data)
     },
+
+    handleExpandIconClick() {
+      if (this.node.isLeaf) return
+
+      if (this.expanded) {
+        this.tree.$emit('node-collapse', this.node.data, this.node, this)
+        this.node.collapse()
+      } else {
+        this.node.expand()
+        this.$emit('node-expand', this.node.data, this.node, this)
+      }
+    },
+
+    handleClick() {
+      const store = this.tree.store
+      store.setCurrentNode(this.node)
+      this.tree.$emit(
+        'current-change',
+        store.currentNode ? store.currentNode.data : null,
+        store.currentNode
+      )
+
+      if (this.tree.expandOnClickNode) {
+        this.handleExpandIconClick()
+      }
+
+      this.tree.$emit('node-click', this.node.data, this.node, this)
+    },
+
+    handleChildNodeExpand(nodeData, node, instance) {
+      this.$emit('node-expand', nodeData, node, instance)
+    },
   },
 }
 </script>
-
