@@ -11,6 +11,7 @@
       :key="getNodeKey(child)"
       :node="child"
       :props="props"
+      :show-checkbox="showCheckbox"
       @node-expand="handleNodeExpand"
     />
 
@@ -58,9 +59,25 @@ export default {
     },
     highlightCurrent: Boolean,
     currentNodeKey: [String, Number],
+    indent: {
+      type: Number,
+      default: 18,
+    },
+    iconClass: String,
+    showCheckbox: {
+      type: Boolean,
+      default: false,
+    },
+    checkStrictly: Boolean,
+    defaultCheckedKeys: Array,
+    checkOnClickNode: Boolean,
+    checkDescendants: {
+      type: Boolean,
+      default: false,
+    },
   },
 
-  emits: ['node-expand', 'node-collapse', 'node-click', 'current-change'],
+  emits: ['node-expand', 'node-collapse', 'node-click', 'current-change', 'check', 'check-change'],
 
   data() {
     return {
@@ -77,6 +94,16 @@ export default {
     },
   },
 
+  watch: {
+    defaultCheckedKeys(newVal) {
+      this.store.setDefaultCheckedKey(newVal)
+    },
+
+    checkStrictly(newVal) {
+      this.store.checkStrictly = newVal
+    },
+  },
+
   created() {
     this.isTree = true
 
@@ -86,6 +113,9 @@ export default {
       props: this.props,
       defaultExpandAll: this.defaultExpandAll,
       currentNodeKey: this.currentNodeKey,
+      checkStrictly: this.checkStrictly,
+      defaultCheckedKeys: this.defaultCheckedKeys,
+      checkDescendants: this.checkDescendants,
     })
 
     this.root = this.store.root
@@ -126,6 +156,38 @@ export default {
 
     getNode(data) {
       return this.store.getNode(data)
+    },
+
+    getCheckedNodes(leafOnly, includeHalfChecked) {
+      return this.store.getCheckedNodes(leafOnly, includeHalfChecked)
+    },
+
+    getCheckedKeys(leafOnly) {
+      return this.store.getCheckedKeys(leafOnly)
+    },
+
+    setCheckedNodes(nodes, leafOnly) {
+      if (!this.nodeKey)
+        throw new Error('[Tree] nodeKey is required in setCheckedNodes')
+      this.store.setCheckedNodes(nodes, leafOnly)
+    },
+
+    setCheckedKeys(keys, leafOnly) {
+      if (!this.nodeKey)
+        throw new Error('[Tree] nodeKey is required in setCheckedKeys')
+      this.store.setCheckedKeys(keys, leafOnly)
+    },
+
+    setChecked(data, checked, deep) {
+      this.store.setChecked(data, checked, deep)
+    },
+
+    getHalfCheckedNodes() {
+      return this.store.getHalfCheckedNodes()
+    },
+
+    getHalfCheckedKeys() {
+      return this.store.getHalfCheckedKeys()
     },
   },
 }

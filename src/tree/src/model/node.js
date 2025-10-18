@@ -1,5 +1,50 @@
 import { markNodeData } from './util';
 
+// 计算子节点的选中状态
+export const getChildState = node => {
+  let all = true;
+  let none = true;
+  let allWithoutDisable = true;
+  for (let i = 0, j = node.length; i < j; i++) {
+    const n = node[i];
+    if (n.checked !== true || n.indeterminate) {
+      all = false;
+      if (!n.disabled) {
+        allWithoutDisable = false;
+      }
+    }
+    if (n.checked !== false || n.indeterminate) {
+      none = false;
+    }
+  }
+
+  return { all, none, allWithoutDisable, half: !all && !none };
+};
+
+// 根据子节点状态重新初始化父节点的选中状态
+const reInitChecked = function(node) {
+  if (node.childNodes.length === 0 || node.loading) return;
+
+  const { all, none, half } = getChildState(node.childNodes);
+  if (all) {
+    node.checked = true;
+    node.indeterminate = false;
+  } else if (half) {
+    node.checked = false;
+    node.indeterminate = true;
+  } else if (none) {
+    node.checked = false;
+    node.indeterminate = false;
+  }
+
+  const parent = node.parent;
+  if (!parent || parent.level === 0) return;
+
+  if (!node.store.checkStrictly) {
+    reInitChecked(parent);
+  }
+};
+
 // 辅助函数：从节点数据中获取属性
 const getPropertyFromData = function(node, prop) {
   const props = node.store.props;
@@ -119,6 +164,10 @@ export default class Node {
     return null;
   }
 
+  get disabled() {
+    return getPropertyFromData(this, 'disabled');
+  }
+
   // 插入子节点
   insertChild(child, index) {
     if (!child) throw new Error('insertChild error: child is required.');
@@ -201,6 +250,59 @@ export default class Node {
       return;
     }
     this.isLeaf = false;
+  }
+
+  // 设置节点的选中状态
+  setChecked(value, deep, recursion, passValue) {
+    this.indeterminate = value === 'half';
+    this.checked = value === true;
+
+    if (this.store.checkStrictly) return;
+
+    if (!(this.shouldLoadData() && !this.store.checkDescendants)) {
+      let { all, allWithoutDisable } = getChildState(this.childNodes);
+
+      if (!this.isLeaf && (!all && allWithoutDisable)) {
+        this.checked = false;
+        value = false;
+      }
+
+      const handleDescendants = () => {
+        if (deep) {
+          const childNodes = this.childNodes;
+          for (let i = 0, j = childNodes.length; i < j; i++) {
+            const child = childNodes[i];
+            passValue = passValue || value !== false;
+            const isCheck = child.disabled ? child.checked : passValue;
+            child.setChecked(isCheck, deep, true, passValue);
+          }
+          const { half, all } = getChildState(childNodes);
+          if (!all) {
+            this.checked = all;
+            this.indeterminate = half;
+          }
+        }
+      };
+
+      if (this.shouldLoadData()) {
+        // 懒加载情况下的处理（暂不实现）
+        return;
+      } else {
+        handleDescendants();
+      }
+    }
+
+    const parent = this.parent;
+    if (!parent || parent.level === 0) return;
+
+    if (!recursion) {
+      reInitChecked(parent);
+    }
+  }
+
+  // 判断是否需要懒加载数据
+  shouldLoadData() {
+    return this.store.lazy === true && this.store.load && !this.loaded;
   }
 }
 

@@ -6,25 +6,42 @@
       'is-expanded': expanded,
       'is-current': node.isCurrent,
       'is-hidden': !node.visible,
+      'is-focusable': !node.disabled,
+      'is-checked': !node.disabled && node.checked,
     }"
     role="treeitem"
+    tabindex="-1"
+    :aria-expanded="expanded"
+    :aria-disabled="node.disabled"
+    :aria-checked="node.checked"
+    @click.stop="handleClick"
   >
     <div
       class="el-tree-node__content"
-      :style="{ 'padding-left': (node.level - 1) * 18 + 'px' }"
-      @click.stop="handleClick"
+      :style="{ 'padding-left': (node.level - 1) * tree.indent + 'px' }"
     >
       <!-- 展开图标 -->
       <span
         :class="[
           { 'is-leaf': node.isLeaf, expanded: !node.isLeaf && expanded },
           'el-tree-node__expand-icon',
+          tree.iconClass ? tree.iconClass : 'el-icon-caret-right',
         ]"
         @click.stop="handleExpandIconClick"
       />
 
-      <!-- 节点文本 -->
-      <span class="el-tree-node__label">{{ node.label }}</span>
+      <!-- 复选框 -->
+      <el-checkbox
+        v-if="showCheckbox"
+        v-model="node.checked"
+        :indeterminate="node.indeterminate"
+        :disabled="!!node.disabled"
+        @click.native.stop
+        @change="handleCheckChange"
+      />
+
+      <!-- 节点内容 -->
+      <node-content :node="node" />
     </div>
 
     <!-- 递归渲染子节点 -->
@@ -35,6 +52,7 @@
           :key="getNodeKey(child)"
           :node="child"
           :props="props"
+          :show-checkbox="showCheckbox"
           @node-expand="handleChildNodeExpand"
         />
       </div>
@@ -45,12 +63,26 @@
 <script>
 import { getNodeKey } from './model/util'
 import ElCollapseTransition from './collapse-transition.js'
+import ElCheckbox from './checkbox.vue'
 
 export default {
   name: 'ElTreeNode',
 
   components: {
     ElCollapseTransition,
+    ElCheckbox,
+    NodeContent: {
+      props: {
+        node: {
+          required: true,
+        },
+      },
+      render(h) {
+        const parent = this.$parent
+        const node = this.node
+        return h('span', { class: 'el-tree-node__label' }, [node.label])
+      },
+    },
   },
 
   props: {
@@ -63,6 +95,10 @@ export default {
     props: {
       type: Object,
     },
+    showCheckbox: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   emits: ['node-expand'],
@@ -71,12 +107,22 @@ export default {
     return {
       tree: null,
       expanded: false,
+      oldChecked: null,
+      oldIndeterminate: null,
     }
   },
 
   watch: {
     'node.expanded'(val) {
       this.$nextTick(() => (this.expanded = val))
+    },
+
+    'node.indeterminate'(val) {
+      this.handleSelectChange(this.node.checked, val)
+    },
+
+    'node.checked'(val) {
+      this.handleSelectChange(val, this.node.indeterminate)
     },
   },
 
@@ -101,6 +147,17 @@ export default {
       return getNodeKey(this.tree.nodeKey, node.data)
     },
 
+    handleSelectChange(checked, indeterminate) {
+      if (
+        this.oldChecked !== checked ||
+        this.oldIndeterminate !== indeterminate
+      ) {
+        this.tree.$emit('check-change', this.node.data, checked, indeterminate)
+      }
+      this.oldChecked = checked
+      this.oldIndeterminate = indeterminate
+    },
+
     handleExpandIconClick() {
       if (this.node.isLeaf) return
 
@@ -121,12 +178,32 @@ export default {
         store.currentNode ? store.currentNode.data : null,
         store.currentNode
       )
+      this.tree.currentNode = this
 
       if (this.tree.expandOnClickNode) {
         this.handleExpandIconClick()
       }
 
+      if (this.tree.checkOnClickNode && !this.node.disabled) {
+        this.handleCheckChange(null, {
+          target: { checked: !this.node.checked },
+        })
+      }
+
       this.tree.$emit('node-click', this.node.data, this.node, this)
+    },
+
+    handleCheckChange(value, ev) {
+      this.node.setChecked(ev.target.checked, !this.tree.checkStrictly)
+      this.$nextTick(() => {
+        const store = this.tree.store
+        this.tree.$emit('check', this.node.data, {
+          checkedNodes: store.getCheckedNodes(),
+          checkedKeys: store.getCheckedKeys(),
+          halfCheckedNodes: store.getHalfCheckedNodes(),
+          halfCheckedKeys: store.getHalfCheckedKeys(),
+        })
+      })
     },
 
     handleChildNodeExpand(nodeData, node, instance) {

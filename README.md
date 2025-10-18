@@ -823,126 +823,6 @@ git checkout -b feature/tree-step5-basic-render
 
 实现节点的展开/收起交互，增加展开收起动画效果。
 
-### ✅ 要达到的效果
-
-- 点击展开图标可以展开/收起子节点
-- 展开收起带有动画过渡效果
-- 支持 expandOnClickNode 配置（点击节点内容也可以展开）
-- 触发 node-expand 和 node-collapse 事件
-
-### 🎯 该做什么
-
-1. **添加展开图标点击事件**：
-
-   ```vue
-   <!-- tree-node.vue -->
-   <span
-     @click.stop="handleExpandIconClick"
-     :class="[
-       { 'is-leaf': node.isLeaf, expanded: !node.isLeaf && expanded },
-       'el-tree-node__expand-icon',
-       'el-icon-caret-right',
-     ]"
-   ></span>
-   ```
-
-2. **实现展开收起逻辑**：
-
-   ```javascript
-   // tree-node.vue
-   methods: {
-     handleExpandIconClick() {
-       if (this.node.isLeaf) return;
-
-       if (this.expanded) {
-         this.tree.$emit('node-collapse', this.node.data, this.node, this);
-         this.node.collapse();
-       } else {
-         this.node.expand();
-         this.$emit('node-expand', this.node.data, this.node, this);
-       }
-     }
-   }
-   ```
-
-3. **添加折叠动画组件**：
-
-   ```vue
-   <!-- tree-node.vue -->
-   <el-collapse-transition>
-     <div
-       class="el-tree-node__children"
-       v-show="expanded"
-       role="group"
-     >
-       <el-tree-node
-         v-for="child in node.childNodes"
-         :node="child"
-         :key="getNodeKey(child)"
-       ></el-tree-node>
-     </div>
-   </el-collapse-transition>
-   ```
-
-4. **在 tree.vue 中监听并转发事件**：
-
-   ```javascript
-   // tree.vue
-   props: {
-     expandOnClickNode: {
-       type: Boolean,
-       default: true
-     }
-   },
-
-   methods: {
-     handleNodeExpand(nodeData, node, instance) {
-       this.$emit('node-expand', nodeData, node, instance);
-     }
-   }
-   ```
-
-5. **添加节点内容点击**：
-
-   ```vue
-   <!-- tree-node.vue -->
-   <div
-     class="el-tree-node__content"
-     @click.stop="handleClick"
-     :style="{ 'padding-left': (node.level - 1) * 18 + 'px' }"
-   >
-   ```
-
-   ```javascript
-   methods: {
-     handleClick() {
-       if (this.tree.expandOnClickNode) {
-         this.handleExpandIconClick();
-       }
-     }
-   }
-   ```
-
-### ❌ 不该做什么
-
-- ❌ 不要实现手风琴模式（accordion）
-- ❌ 不要实现延迟渲染（renderAfterExpand）
-- ❌ 不要实现默认展开节点（defaultExpandedKeys）
-
-### 🌿 分支命名
-
-```bash
-git checkout -b feature/tree-step6-expand-collapse
-```
-
-### ✔️ 验收标准
-
-- [] 点击展开图标可以展开/收起节点
-- [] 展开收起有动画效果
-- [] expandOnClickNode 配置生效
-- [] node-expand 和 node-collapse 事件正常触发
-- [] 叶子节点不显示展开图标
-
 ---
 
 ## Step 7: 实现节点选中高亮（架构 - 状态管理）
@@ -950,137 +830,6 @@ git checkout -b feature/tree-step6-expand-collapse
 ### 📋 本步目标
 
 实现节点的点击选中功能，当前选中的节点高亮显示。
-
-### ✅ 要达到的效果
-
-- 点击节点可以选中该节点
-- 选中的节点背景高亮
-- 支持 highlightCurrent 配置控制是否高亮
-- 支持 currentNodeKey 配置默认选中节点
-- 提供 setCurrentKey、getCurrentKey 等 API
-
-### 🎯 该做什么
-
-1. **添加 props 配置**：
-
-   ```javascript
-   // tree.vue
-   props: {
-     highlightCurrent: Boolean,
-     currentNodeKey: [String, Number]
-   },
-
-   data() {
-     return {
-       store: null,
-       root: null,
-       currentNode: null
-     };
-   }
-   ```
-
-2. **在 TreeStore 中初始化当前节点**：
-
-   ```javascript
-   // tree-store.js - constructor
-   this.currentNodeKey = options.currentNodeKey
-
-   // node.js - constructor
-   if (
-     key &&
-     store.currentNodeKey !== undefined &&
-     this.key === store.currentNodeKey
-   ) {
-     store.currentNode = this
-     store.currentNode.isCurrent = true
-   }
-   ```
-
-3. **实现节点点击选中**：
-
-   ```javascript
-   // tree-node.vue
-   methods: {
-     handleClick() {
-       const store = this.tree.store;
-       store.setCurrentNode(this.node);
-       this.tree.$emit('current-change', store.currentNode ? store.currentNode.data : null, store.currentNode);
-       this.tree.currentNode = this;
-
-       if (this.tree.expandOnClickNode) {
-         this.handleExpandIconClick();
-       }
-
-       this.tree.$emit('node-click', this.node.data, this.node, this);
-     }
-   }
-   ```
-
-4. **添加高亮样式类**：
-
-   ```vue
-   <!-- tree-node.vue -->
-   <div
-     class="el-tree-node"
-     :class="{
-       'is-expanded': expanded,
-       'is-current': node.isCurrent,
-       'is-hidden': !node.visible
-     }"
-   >
-   ```
-
-   ```vue
-   <!-- tree.vue -->
-   <div
-     class="el-tree"
-     :class="{
-       'el-tree--highlight-current': highlightCurrent
-     }"
-   >
-   ```
-
-5. **提供外部 API**：
-
-   ```javascript
-   // tree.vue
-   methods: {
-     getCurrentNode() {
-       const currentNode = this.store.getCurrentNode();
-       return currentNode ? currentNode.data : null;
-     },
-
-     getCurrentKey() {
-       if (!this.nodeKey) throw new Error('[Tree] nodeKey is required in getCurrentKey');
-       const currentNode = this.getCurrentNode();
-       return currentNode ? currentNode[this.nodeKey] : null;
-     },
-
-     setCurrentNode(node) {
-       if (!this.nodeKey) throw new Error('[Tree] nodeKey is required in setCurrentNode');
-       this.store.setUserCurrentNode(node);
-     },
-
-     setCurrentKey(key) {
-       if (!this.nodeKey) throw new Error('[Tree] nodeKey is required in setCurrentKey');
-       this.store.setCurrentNodeKey(key);
-     },
-
-     getNode(data) {
-       return this.store.getNode(data);
-     }
-   }
-   ```
-
-6. **在 TreeStore 中实现辅助方法**：
-   ```javascript
-   // tree-store.js
-   setUserCurrentNode(node) {
-     const key = node[this.key];
-     const currNode = this.nodesMap[key];
-     this.setCurrentNode(currNode);
-   }
-   ```
 
 ### ❌ 不该做什么
 
@@ -1094,12 +843,32 @@ git checkout -b feature/tree-step6-expand-collapse
 git checkout -b feature/tree-step7-node-select
 ```
 
-### ✔️ 验收标准
+---
 
-- [ ] 点击节点可以选中并高亮
-- [ ] highlightCurrent 配置生效
-- [ ] currentNodeKey 可以设置默认选中节点
-- [ ] current-change 和 node-click 事件正常触发
-- [ ] setCurrentKey、getCurrentKey 等 API 工作正常
+## Step 8: 实现复选框功能（经验 - 级联选择算法）
+
+### 📋 本步目标
+
+实现节点复选框功能，包含父子级联选择逻辑，包含禁用节点的复选框逻辑细节。
+
+### ✅ 要达到的效果
+
+- 节点前显示复选框
+- 勾选父节点，子节点全部勾选
+- 勾选所有子节点，父节点自动勾选
+- 部分子节点勾选，父节点显示半选状态
+- 实现禁用节点的复选框逻辑细节
+- 支持 checkStrictly 配置（父子不关联）
+- 提供 getCheckedNodes、setCheckedKeys 等 API
+
+### ❌ 不该做什么
+
+- ❌ 不要实现复选框功能与懒加载相关的逻辑
+
+### 🌿 分支命名
+
+```bash
+git checkout -b feature/tree-step8-checkbox
+```
 
 ---
