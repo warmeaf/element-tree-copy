@@ -182,6 +182,37 @@
         {{ log }}
       </div>
     </div>
+    
+    <h2>CRUD 操作演示（节点增删改）</h2>
+    <el-tree 
+      ref="crudTree"
+      :data="crudTreeData" 
+      node-key="id"
+      default-expand-all
+    />
+    <div style="margin-top: 10px;">
+      <button @click="appendNode">
+        添加子节点（在"一级 1" id=1 下添加）
+      </button>
+      <button @click="insertBeforeNode">
+        在"二级 1-1" id=2 前插入节点
+      </button>
+      <button @click="insertAfterNode">
+        在"二级 1-1" id=2 后插入节点
+      </button>
+      <button @click="removeNode">
+        删除"二级 1-1" id=2 节点
+      </button>
+      <button @click="updateChildren">
+        更新"一级 1" id=1 的子节点列表
+      </button>
+      <button @click="resetCrudData">
+        重置数据
+      </button>
+    </div>
+    <div style="margin-top: 5px; color: #E6A23C; font-size: 12px;">
+      提示：CRUD 操作通过节点 ID 查找目标节点，会同时更新树结构和原始数据。如果目标节点不存在（已被删除），操作会被忽略并在控制台输出提示
+    </div>
   </div>
 </template>
 
@@ -411,6 +442,39 @@ export default {
       defaultCheckedKeys: [3, 6],
       checkedInfo: '',
       checkEventLog: '',
+      crudTreeData: [
+        {
+          id: 1,
+          label: '一级 1',
+          children: [
+            {
+              id: 2,
+              label: '二级 1-1',
+              children: [
+                {
+                  id: 3,
+                  label: '三级 1-1-1',
+                },
+              ],
+            },
+            {
+              id: 4,
+              label: '二级 1-2',
+            },
+          ],
+        },
+        {
+          id: 5,
+          label: '一级 2',
+          children: [
+            {
+              id: 6,
+              label: '二级 2-1',
+            },
+          ],
+        },
+      ],
+      nodeIdCounter: 10, // 用于生成新节点的id
     }
   },
   methods: {
@@ -538,6 +602,169 @@ export default {
       const log = `[check-change事件] ${data.label} → ${status}`
       // eslint-disable-next-line no-console
       console.log(log, { checked, indeterminate })
+      this.logs.unshift(log)
+      if (this.logs.length > 20) this.logs.pop()
+    },
+    // 辅助方法：根据 ID 查找节点
+    findNodeById(nodes, id) {
+      for (const node of nodes) {
+        if (node.id === id) {
+          return node
+        }
+        if (node.children && node.children.length > 0) {
+          const found = this.findNodeById(node.children, id)
+          if (found) return found
+        }
+      }
+      return null
+    },
+    
+    // CRUD 操作方法
+    appendNode() {
+      const tree = this.$refs.crudTree
+      const newId = ++this.nodeIdCounter
+      const newNode = {
+        id: newId,
+        label: `新增节点 ${newId}`,
+      }
+      // 在"一级 1"（id=1）下添加子节点
+      const parentData = this.findNodeById(this.crudTreeData, 1)
+      if (parentData) {
+        tree.append(newNode, parentData)
+        
+        const log = `[添加节点] 在"${parentData.label}"下添加了"${newNode.label}"`
+        // eslint-disable-next-line no-console
+        console.log(log, this.crudTreeData)
+        this.logs.unshift(log)
+        if (this.logs.length > 20) this.logs.pop()
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('未找到父节点（一级 1）')
+      }
+    },
+    insertBeforeNode() {
+      const tree = this.$refs.crudTree
+      const newId = ++this.nodeIdCounter
+      const newNode = {
+        id: newId,
+        label: `插入节点 ${newId}`,
+      }
+      // 在"二级 1-1"（id=2）前插入
+      const refData = this.findNodeById(this.crudTreeData, 2)
+      if (refData) {
+        tree.insertBefore(newNode, refData)
+        
+        const log = `[插入节点] 在"${refData.label}"前插入了"${newNode.label}"`
+        // eslint-disable-next-line no-console
+        console.log(log, this.crudTreeData)
+        this.logs.unshift(log)
+        if (this.logs.length > 20) this.logs.pop()
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('未找到参考节点（二级 1-1）')
+      }
+    },
+    insertAfterNode() {
+      const tree = this.$refs.crudTree
+      const newId = ++this.nodeIdCounter
+      const newNode = {
+        id: newId,
+        label: `插入节点 ${newId}`,
+      }
+      // 在"二级 1-1"（id=2）后插入
+      const refData = this.findNodeById(this.crudTreeData, 2)
+      if (refData) {
+        tree.insertAfter(newNode, refData)
+        
+        const log = `[插入节点] 在"${refData.label}"后插入了"${newNode.label}"`
+        // eslint-disable-next-line no-console
+        console.log(log, this.crudTreeData)
+        this.logs.unshift(log)
+        if (this.logs.length > 20) this.logs.pop()
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('未找到参考节点（二级 1-1）')
+      }
+    },
+    removeNode() {
+      const tree = this.$refs.crudTree
+      // 删除"二级 1-1"（id=2）
+      const nodeData = this.findNodeById(this.crudTreeData, 2)
+      if (nodeData) {
+        tree.remove(nodeData)
+        
+        const log = `[删除节点] 删除了"${nodeData.label}"`
+        // eslint-disable-next-line no-console
+        console.log(log, this.crudTreeData)
+        this.logs.unshift(log)
+        if (this.logs.length > 20) this.logs.pop()
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('未找到要删除的节点（二级 1-1）')
+      }
+    },
+    updateChildren() {
+      const tree = this.$refs.crudTree
+      // 更新"一级 1"（id=1）的子节点列表
+      const newChildren = [
+        {
+          id: ++this.nodeIdCounter,
+          label: `更新后的节点 ${this.nodeIdCounter}`,
+        },
+        {
+          id: ++this.nodeIdCounter,
+          label: `更新后的节点 ${this.nodeIdCounter}`,
+        },
+      ]
+      tree.updateKeyChildren(1, newChildren)
+      
+      const log = '[更新子节点] 更新了"一级 1"的所有子节点'
+      // eslint-disable-next-line no-console
+      console.log(log, this.crudTreeData)
+      this.logs.unshift(log)
+      if (this.logs.length > 20) this.logs.pop()
+    },
+    resetCrudData() {
+      // 重置 nodeIdCounter
+      this.nodeIdCounter = 10
+      
+      // 重置数据
+      this.crudTreeData = [
+        {
+          id: 1,
+          label: '一级 1',
+          children: [
+            {
+              id: 2,
+              label: '二级 1-1',
+              children: [
+                {
+                  id: 3,
+                  label: '三级 1-1-1',
+                },
+              ],
+            },
+            {
+              id: 4,
+              label: '二级 1-2',
+            },
+          ],
+        },
+        {
+          id: 5,
+          label: '一级 2',
+          children: [
+            {
+              id: 6,
+              label: '二级 2-1',
+            },
+          ],
+        },
+      ]
+      
+      const log = '[重置] 重置了 CRUD 树的数据和计数器'
+      // eslint-disable-next-line no-console
+      console.log(log, this.crudTreeData)
       this.logs.unshift(log)
       if (this.logs.length > 20) this.logs.pop()
     },

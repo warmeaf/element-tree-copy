@@ -77,7 +77,14 @@ export default {
     },
   },
 
-  emits: ['node-expand', 'node-collapse', 'node-click', 'current-change', 'check', 'check-change'],
+  emits: [
+    'node-expand',
+    'node-collapse',
+    'node-click',
+    'current-change',
+    'check',
+    'check-change',
+  ],
 
   data() {
     return {
@@ -95,6 +102,10 @@ export default {
   },
 
   watch: {
+    data(newVal) {
+      this.store.setData(newVal)
+    },
+
     defaultCheckedKeys(newVal) {
       this.store.setDefaultCheckedKey(newVal)
     },
@@ -189,6 +200,33 @@ export default {
     getHalfCheckedKeys() {
       return this.store.getHalfCheckedKeys()
     },
+
+    // 删除节点
+    remove(data) {
+      this.store.remove(data)
+    },
+
+    // 添加子节点
+    append(data, parentNode) {
+      this.store.append(data, parentNode)
+    },
+
+    // 在指定节点前插入
+    insertBefore(data, refNode) {
+      this.store.insertBefore(data, refNode)
+    },
+
+    // 在指定节点后插入
+    insertAfter(data, refNode) {
+      this.store.insertAfter(data, refNode)
+    },
+
+    // 更新指定节点的子节点列表
+    updateKeyChildren(key, data) {
+      if (!this.nodeKey)
+        throw new Error('[Tree] nodeKey is required in updateKeyChild')
+      this.store.updateChildren(key, data)
+    },
   },
 }
 </script>
@@ -196,4 +234,3 @@ export default {
 <style>
 @import './style/tree.css';
 </style>
-

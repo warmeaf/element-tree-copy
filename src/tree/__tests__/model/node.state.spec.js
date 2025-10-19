@@ -3,25 +3,37 @@ import Node from '../../src/model/node.js'
 import TreeStore from '../../src/model/tree-store.js'
 
 describe('Node - 状态管理', () => {
-  describe('expand 和 collapse 方法', () => {
-    let store
+  let store
 
-    beforeEach(() => {
-      store = new TreeStore({
-        key: 'id',
-        data: [],
-        props: {
-          label: 'label',
-          children: 'children'
-        }
-      })
+  beforeEach(() => {
+    store = new TreeStore({
+      key: 'id',
+      data: [],
+      props: {
+        label: 'label',
+        children: 'children'
+      }
     })
+  })
+
+  // Helper function: 创建有正确层级关系的节点
+  const createTestNode = (data = { id: 1, label: 'node' }) => {
+    const grandParent = new Node({
+      data: [],
+      store: store
+    })
+    
+    return new Node({
+      data: data,
+      parent: grandParent,
+      store: store
+    })
+  }
+
+  describe('expand 和 collapse 方法', () => {
 
     it('应该能够展开节点', () => {
-      const node = new Node({
-        data: { id: 1, label: 'node' },
-        store: store
-      })
+      const node = createTestNode()
 
       expect(node.expanded).toBe(false)
 
@@ -31,8 +43,14 @@ describe('Node - 状态管理', () => {
     })
 
     it('应该能够收起节点', () => {
+      // 创建有层级的节点，并设置为展开状态
+      const grandParent = new Node({
+        data: [],
+        store: store
+      })
       const node = new Node({
         data: { id: 1, label: 'node' },
+        parent: grandParent,
         store: store,
         expanded: true
       })
@@ -45,10 +63,7 @@ describe('Node - 状态管理', () => {
     })
 
     it('应该能够连续调用 expand 和 collapse', () => {
-      const node = new Node({
-        data: { id: 1, label: 'node' },
-        store: store
-      })
+      const node = createTestNode({ id: 1, label: 'node' })
 
       node.expand()
       expect(node.expanded).toBe(true)
@@ -62,35 +77,26 @@ describe('Node - 状态管理', () => {
   })
 
   describe('updateLeafState 方法', () => {
-    let store
-
-    beforeEach(() => {
-      store = new TreeStore({
-        key: 'id',
-        data: [],
-        props: {
-          label: 'label',
-          children: 'children'
-        }
-      })
-    })
 
     it('没有子节点时应该是叶子节点', () => {
-      const node = new Node({
-        data: { id: 1, label: 'node' },
-        store: store
-      })
+      const node = createTestNode({ id: 1, label: 'node' })
 
       expect(node.isLeaf).toBe(true)
     })
 
     it('有子节点时不应该是叶子节点', () => {
+      // 创建有层级的节点，包含子节点数据
+      const grandParent = new Node({
+        data: [],
+        store: store
+      })
       const node = new Node({
         data: {
           id: 1,
           label: 'node',
           children: [{ id: 2, label: 'child' }]
         },
+        parent: grandParent,
         store: store
       })
 
@@ -98,10 +104,7 @@ describe('Node - 状态管理', () => {
     })
 
     it('添加子节点后应该变为非叶子节点', () => {
-      const node = new Node({
-        data: { id: 1, label: 'node' },
-        store: store
-      })
+      const node = createTestNode({ id: 1, label: 'node' })
 
       expect(node.isLeaf).toBe(true)
 
@@ -111,12 +114,18 @@ describe('Node - 状态管理', () => {
     })
 
     it('移除所有子节点后应该变为叶子节点', () => {
+      // 创建有层级的节点，包含子节点数据
+      const grandParent = new Node({
+        data: [],
+        store: store
+      })
       const node = new Node({
         data: {
           id: 1,
           label: 'node',
           children: [{ id: 2, label: 'child' }]
         },
+        parent: grandParent,
         store: store
       })
 
@@ -140,8 +149,14 @@ describe('Node - 状态管理', () => {
         }
       })
 
+      // 创建有层级的节点
+      const grandParent = new Node({
+        data: [],
+        store: store
+      })
       const node = new Node({
         data: { id: 123, label: 'test' },
+        parent: grandParent,
         store: store
       })
 
@@ -160,8 +175,14 @@ describe('Node - 状态管理', () => {
         }
       })
 
+      // 创建有层级的节点
+      const grandParent = new Node({
+        data: [],
+        store: store
+      })
       const node = new Node({
         data: { id: 123, label: 'test' },
+        parent: grandParent,
         store: store
       })
 
@@ -179,8 +200,14 @@ describe('Node - 状态管理', () => {
         }
       })
 
+      // 创建有层级的节点
+      const grandParent = new Node({
+        data: [],
+        store: store
+      })
       const node = new Node({
         data: { id: 123, label: 'test' },
+        parent: grandParent,
         store: store
       })
 
@@ -199,8 +226,14 @@ describe('Node - 状态管理', () => {
         }
       })
 
+      // 创建有层级的节点
+      const grandParent = new Node({
+        data: [],
+        store: store
+      })
       const node = new Node({
         data: { id: 'node-abc', label: 'test' },
+        parent: grandParent,
         store: store
       })
 

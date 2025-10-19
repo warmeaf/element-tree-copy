@@ -98,6 +98,23 @@ export default class TreeStore {
     }
   }
 
+  // 更新指定节点的子节点列表
+  updateChildren(key, data) {
+    const node = this.nodesMap[key];
+    if (!node) return;
+    const childNodes = node.childNodes;
+    // 先删除所有旧子节点
+    for (let i = childNodes.length - 1; i >= 0; i--) {
+      const child = childNodes[i];
+      this.remove(child.data);
+    }
+    // 添加新子节点
+    for (let i = 0, j = data.length; i < j; i++) {
+      const child = data[i];
+      this.append(child, node.data);
+    }
+  }
+
   // 设置当前节点
   setCurrentNode(currentNode) {
     const prevCurrentNode = this.currentNode;

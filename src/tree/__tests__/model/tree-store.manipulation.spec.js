@@ -282,5 +282,111 @@ describe('TreeStore - 节点操作', () => {
       }).not.toThrow()
     })
   })
-})
 
+  describe('updateChildren 方法', () => {
+    let store
+
+    beforeEach(() => {
+      store = new TreeStore({
+        key: 'id',
+        data: [
+          {
+            id: 1,
+            label: '一级 1',
+            children: [
+              { id: 11, label: '二级 1-1' },
+              { id: 12, label: '二级 1-2' }
+            ]
+          }
+        ],
+        props: {
+          label: 'label',
+          children: 'children'
+        }
+      })
+    })
+
+    it('应该更新指定节点的子节点列表', () => {
+      const newChildren = [
+        { id: 13, label: '新二级 1-3' },
+        { id: 14, label: '新二级 1-4' }
+      ]
+
+      store.updateChildren(1, newChildren)
+
+      const parentNode = store.getNode(1)
+      expect(parentNode.childNodes.length).toBe(2)
+      expect(store.getNode(13)).toBeDefined()
+      expect(store.getNode(14)).toBeDefined()
+    })
+
+    it('应该删除旧的子节点', () => {
+      const newChildren = [
+        { id: 13, label: '新二级 1-3' }
+      ]
+
+      expect(store.getNode(11)).toBeDefined()
+      expect(store.getNode(12)).toBeDefined()
+
+      store.updateChildren(1, newChildren)
+
+      expect(store.getNode(11)).toBeNull()
+      expect(store.getNode(12)).toBeNull()
+    })
+
+    it('应该注销旧子节点的所有后代', () => {
+      // 给节点 11 添加子节点
+      store.append({ id: 111, label: '三级 1-1-1' }, { id: 11 })
+      expect(store.getNode(111)).toBeDefined()
+
+      const newChildren = [
+        { id: 13, label: '新二级 1-3' }
+      ]
+
+      store.updateChildren(1, newChildren)
+
+      // 节点 11 的子节点也应该被删除
+      expect(store.getNode(111)).toBeNull()
+    })
+
+    it('应该正确设置新子节点的层级', () => {
+      const newChildren = [
+        { id: 13, label: '新二级 1-3' }
+      ]
+
+      store.updateChildren(1, newChildren)
+
+      const newNode = store.getNode(13)
+      expect(newNode.level).toBe(2)
+    })
+
+    it('当节点不存在时不应该抛出错误', () => {
+      expect(() => {
+        store.updateChildren(999, [{ id: 100, label: 'test' }])
+      }).not.toThrow()
+    })
+
+    it('应该支持空数组（清空子节点）', () => {
+      store.updateChildren(1, [])
+
+      const parentNode = store.getNode(1)
+      expect(parentNode.childNodes.length).toBe(0)
+      expect(parentNode.isLeaf).toBe(true)
+    })
+
+    it('应该同步更新原始数据', () => {
+      const parentData = store.getNode(1).data
+      
+      const newChildren = [
+        { id: 13, label: '新二级 1-3' },
+        { id: 14, label: '新二级 1-4' }
+      ]
+
+      store.updateChildren(1, newChildren)
+
+      expect(parentData.children.length).toBe(2)
+      expect(parentData.children[0].id).toBe(13)
+      expect(parentData.children[1].id).toBe(14)
+    })
+  })
+})

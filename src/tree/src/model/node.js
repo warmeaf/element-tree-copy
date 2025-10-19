@@ -148,9 +148,9 @@ export default class Node {
       children = getPropertyFromData(this, 'children') || [];
     }
 
-    // 递归创建子节点
+    // 递归创建子节点（使用 batch 模式避免重复同步）
     for (let i = 0, j = children.length; i < j; i++) {
-      this.insertChild({ data: children[i] });
+      this.insertChild({ data: children[i] }, undefined, true);
     }
   }
 
@@ -168,11 +168,45 @@ export default class Node {
     return getPropertyFromData(this, 'disabled');
   }
 
+  // 获取节点的子数据数组（用于数据同步）
+  getChildren(forceInit = false) {
+    if (this.level === 0) return this.data;
+    const data = this.data;
+    if (!data) return null;
+
+    const props = this.store.props;
+    let children = 'children';
+    if (props) {
+      children = props.children || 'children';
+    }
+
+    if (data[children] === undefined) {
+      data[children] = null;
+    }
+
+    if (forceInit && !data[children]) {
+      data[children] = [];
+    }
+
+    return data[children];
+  }
+
   // 插入子节点
-  insertChild(child, index) {
+  insertChild(child, index, batch) {
     if (!child) throw new Error('insertChild error: child is required.');
 
     if (!(child instanceof Node)) {
+      // 如果不是 batch 模式，需要同步更新原数据
+      if (!batch) {
+        const children = this.getChildren(true) || [];
+        if (children.indexOf(child.data) === -1) {
+          if (typeof index === 'undefined' || index < 0) {
+            children.push(child.data);
+          } else {
+            children.splice(index, 0, child.data);
+          }
+        }
+      }
       Object.assign(child, {
         parent: this,
         store: this.store
@@ -219,6 +253,14 @@ export default class Node {
   }
 
   removeChild(child) {
+    // 同步删除原数据
+    const children = this.getChildren() || [];
+    const dataIndex = children.indexOf(child.data);
+    if (dataIndex > -1) {
+      children.splice(dataIndex, 1);
+    }
+
+    // 删除节点
     const index = this.childNodes.indexOf(child);
     if (index > -1) {
       this.store && this.store.deregisterNode(child);
@@ -226,6 +268,22 @@ export default class Node {
       this.childNodes.splice(index, 1);
     }
     this.updateLeafState();
+  }
+
+  // 根据数据删除子节点
+  removeChildByData(data) {
+    let targetNode = null;
+
+    for (let i = 0; i < this.childNodes.length; i++) {
+      if (this.childNodes[i].data === data) {
+        targetNode = this.childNodes[i];
+        break;
+      }
+    }
+
+    if (targetNode) {
+      this.removeChild(targetNode);
+    }
   }
 
   // 展开（暂时只修改状态）
