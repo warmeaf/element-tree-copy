@@ -20,8 +20,15 @@
       class="el-tree-node__content"
       :style="{ 'padding-left': (node.level - 1) * tree.indent + 'px' }"
     >
+      <!-- Loading 图标 -->
+      <span
+        v-if="node.loading"
+        class="el-tree-node__loading-icon"
+      />
+
       <!-- 展开图标 -->
       <span
+        v-else
         :class="[
           { 'is-leaf': node.isLeaf, expanded: !node.isLeaf && expanded },
           'el-tree-node__expand-icon',
@@ -212,3 +219,51 @@ export default {
   },
 }
 </script>
+
+<style scoped>
+/* Loading 图标样式 */
+.el-tree-node__loading-icon {
+  display: inline-block;
+  position: relative;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.el-tree-node__loading-icon::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #c0c4cc;
+  border-top: 2px solid #409eff;
+  border-radius: 50%;
+  animation: el-loading-rotate 1s linear infinite;
+}
+
+/* 旋转动画 */
+@keyframes el-loading-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 悬停效果 */
+.el-tree-node__loading-icon:hover::before {
+  border-top-color: #66b1ff;
+}
+
+/* 深色主题适配 */
+@media (prefers-color-scheme: dark) {
+  .el-tree-node__loading-icon::before {
+    border-color: #4c4d4f;
+    border-top-color: #409eff;
+  }
+}
+</style>

@@ -1,217 +1,239 @@
 <template>
   <div>
     <h1>tree 组件示例</h1>
-    
+
     <h2>基础用法（点击展开/收起）</h2>
-    <el-tree 
-      :data="treeData" 
+    <el-tree
+      :data="treeData"
       @node-expand="handleNodeExpand"
       @node-collapse="handleNodeCollapse"
       @node-click="handleNodeClick"
     />
-    
+
     <h2>默认展开所有节点</h2>
     <el-tree :data="treeData" default-expand-all />
-    
+
     <h2>禁用点击节点展开</h2>
     <el-tree :data="treeData" :expand-on-click-node="false" />
-    
+
     <h2>空数据</h2>
     <el-tree :data="[]" />
-    
+
     <h2>自定义字段名</h2>
-    <el-tree 
-      :data="customTreeData" 
-      :props="customProps"
-      default-expand-all
-    />
-    
+    <el-tree :data="customTreeData" :props="customProps" default-expand-all />
+
     <h2>节点选中高亮（highlightCurrent）</h2>
-    <el-tree 
+    <el-tree
       ref="highlightTree"
-      :data="treeDataWithId" 
+      :data="treeDataWithId"
       node-key="id"
       highlight-current
       default-expand-all
       @current-change="handleCurrentChange"
     />
-    <div style="margin-top: 10px;">
-      <button @click="getCurrentInfo">
-        获取当前节点
-      </button>
-      <button @click="setCurrentByKey">
-        设置当前节点为 id=3
-      </button>
-      <button @click="setCurrentByData">
-        通过数据设置当前节点
-      </button>
-      <button @click="clearCurrent">
-        清除当前节点
-      </button>
-      <div style="margin-top: 5px; color: #409EFF;">
+    <div style="margin-top: 10px">
+      <button @click="getCurrentInfo">获取当前节点</button>
+      <button @click="setCurrentByKey">设置当前节点为 id=3</button>
+      <button @click="setCurrentByData">通过数据设置当前节点</button>
+      <button @click="clearCurrent">清除当前节点</button>
+      <div style="margin-top: 5px; color: #409eff">
         当前选中节点：{{ currentNodeInfo }}
       </div>
     </div>
-    
+
     <h2>默认选中节点（currentNodeKey）</h2>
-    <el-tree 
-      :data="treeDataWithId" 
+    <el-tree
+      :data="treeDataWithId"
       node-key="id"
       highlight-current
       :current-node-key="5"
       default-expand-all
     />
-    
+
     <h2>自定义缩进和图标</h2>
-    <el-tree 
-      :data="treeData" 
+    <el-tree
+      :data="treeData"
       :indent="32"
       icon-class="el-icon-arrow-right"
       default-expand-all
     />
-    
+
     <h2>复选框 - 基础用法（父子级联选择）</h2>
-    <el-tree 
-      :data="checkboxTreeData" 
+    <el-tree
+      :data="checkboxTreeData"
       node-key="id"
       show-checkbox
       default-expand-all
     />
-    <div style="margin-top: 5px; color: #67C23A; font-size: 12px;">
+    <div style="margin-top: 5px; color: #67c23a; font-size: 12px">
       提示：勾选父节点会自动勾选所有子节点；勾选所有子节点会自动勾选父节点；部分子节点勾选时，父节点显示半选状态
     </div>
-    
+
     <h2>复选框 - 默认选中节点（defaultCheckedKeys）</h2>
-    <el-tree 
-      :data="checkboxTreeData" 
+    <el-tree
+      :data="checkboxTreeData"
       node-key="id"
       show-checkbox
       :default-checked-keys="defaultCheckedKeys"
       default-expand-all
     />
-    <div style="margin-top: 5px; color: #67C23A; font-size: 12px;">
+    <div style="margin-top: 5px; color: #67c23a; font-size: 12px">
       提示：默认选中了 id 为 3 和 6 的节点
     </div>
-    
+
     <h2>复选框 - 禁用节点逻辑</h2>
-    <el-tree 
-      :data="checkboxTreeDataWithDisabled" 
+    <el-tree
+      :data="checkboxTreeDataWithDisabled"
       node-key="id"
       show-checkbox
       default-expand-all
     />
-    <div style="margin-top: 5px; color: #67C23A; font-size: 12px;">
+    <div style="margin-top: 5px; color: #67c23a; font-size: 12px">
       提示：禁用的节点不会因为父节点选中而改变状态；父节点状态计算时会考虑禁用子节点
     </div>
-    
+
     <h2>复选框 - checkStrictly 模式（父子不关联）</h2>
-    <el-tree 
-      :data="checkboxTreeData" 
+    <el-tree
+      :data="checkboxTreeData"
       node-key="id"
       show-checkbox
       check-strictly
       default-expand-all
     />
-    <div style="margin-top: 5px; color: #67C23A; font-size: 12px;">
+    <div style="margin-top: 5px; color: #67c23a; font-size: 12px">
       提示：父子节点选中状态互不影响
     </div>
-    
+
     <h2>复选框 - checkOnClickNode（点击节点切换复选框）</h2>
-    <el-tree 
-      :data="checkboxTreeData" 
+    <el-tree
+      :data="checkboxTreeData"
       node-key="id"
       show-checkbox
       check-on-click-node
       default-expand-all
     />
-    <div style="margin-top: 5px; color: #67C23A; font-size: 12px;">
+    <div style="margin-top: 5px; color: #67c23a; font-size: 12px">
       提示：点击节点标签即可切换复选框状态
     </div>
-    
+
     <h2>复选框 - API 演示</h2>
-    <el-tree 
+    <el-tree
       ref="checkboxApiTree"
-      :data="checkboxTreeData" 
+      :data="checkboxTreeData"
       node-key="id"
       show-checkbox
       default-expand-all
     />
-    <div style="margin-top: 10px;">
-      <button @click="getCheckedInfo">
-        获取选中节点
-      </button>
-      <button @click="getCheckedLeafInfo">
-        获取选中的叶子节点
-      </button>
+    <div style="margin-top: 10px">
+      <button @click="getCheckedInfo">获取选中节点</button>
+      <button @click="getCheckedLeafInfo">获取选中的叶子节点</button>
       <button @click="setCheckedByKeys">
         设置选中节点（通过keys: [2,6,9]）
       </button>
-      <button @click="setCheckedByNodes">
-        设置选中节点（通过nodes）
-      </button>
-      <button @click="setNodeChecked">
-        设置单个节点选中（二级1-2）
-      </button>
-      <button @click="clearChecked">
-        清空选中
-      </button>
-      <div v-if="checkedInfo" style="margin-top: 10px; background: #f5f5f5; padding: 10px; white-space: pre-wrap; font-size: 12px;">
+      <button @click="setCheckedByNodes">设置选中节点（通过nodes）</button>
+      <button @click="setNodeChecked">设置单个节点选中（二级1-2）</button>
+      <button @click="clearChecked">清空选中</button>
+      <div
+        v-if="checkedInfo"
+        style="
+          margin-top: 10px;
+          background: #f5f5f5;
+          padding: 10px;
+          white-space: pre-wrap;
+          font-size: 12px;
+        "
+      >
         {{ checkedInfo }}
       </div>
     </div>
-    
+
     <h2>复选框 - 事件演示</h2>
-    <el-tree 
-      :data="checkboxTreeData" 
+    <el-tree
+      :data="checkboxTreeData"
       node-key="id"
       show-checkbox
       default-expand-all
       @check="handleCheck"
       @check-change="handleCheckChange"
     />
-    <div v-if="checkEventLog" style="margin-top: 10px; background: #E6F7FF; padding: 10px; white-space: pre-wrap; font-size: 12px; color: #0050B3;">
+    <div
+      v-if="checkEventLog"
+      style="
+        margin-top: 10px;
+        background: #e6f7ff;
+        padding: 10px;
+        white-space: pre-wrap;
+        font-size: 12px;
+        color: #0050b3;
+      "
+    >
       {{ checkEventLog }}
     </div>
-    <div style="margin-top: 5px; color: #67C23A; font-size: 12px;">
-      提示：check 事件在节点选中状态变化时触发；check-change 事件也会触发，包含半选状态信息。查看"事件日志"了解详情
+    <div style="margin-top: 5px; color: #67c23a; font-size: 12px">
+      提示：check 事件在节点选中状态变化时触发；check-change
+      事件也会触发，包含半选状态信息。查看"事件日志"了解详情
     </div>
-    
+
     <h2>事件日志</h2>
-    <div style="background: #f5f5f5; padding: 10px; max-height: 200px; overflow-y: auto;">
-      <div v-for="(log, index) in logs" :key="index" style="font-size: 12px; padding: 2px 0;">
+    <div
+      style="
+        background: #f5f5f5;
+        padding: 10px;
+        max-height: 200px;
+        overflow-y: auto;
+      "
+    >
+      <div
+        v-for="(log, index) in logs"
+        :key="index"
+        style="font-size: 12px; padding: 2px 0"
+      >
         {{ log }}
       </div>
     </div>
-    
+
     <h2>CRUD 操作演示（节点增删改）</h2>
-    <el-tree 
+    <el-tree
       ref="crudTree"
-      :data="crudTreeData" 
+      :data="crudTreeData"
       node-key="id"
       default-expand-all
     />
-    <div style="margin-top: 10px;">
-      <button @click="appendNode">
-        添加子节点（在"一级 1" id=1 下添加）
-      </button>
-      <button @click="insertBeforeNode">
-        在"二级 1-1" id=2 前插入节点
-      </button>
-      <button @click="insertAfterNode">
-        在"二级 1-1" id=2 后插入节点
-      </button>
-      <button @click="removeNode">
-        删除"二级 1-1" id=2 节点
-      </button>
-      <button @click="updateChildren">
-        更新"一级 1" id=1 的子节点列表
-      </button>
-      <button @click="resetCrudData">
-        重置数据
-      </button>
+    <div style="margin-top: 10px">
+      <button @click="appendNode">添加子节点（在"一级 1" id=1 下添加）</button>
+      <button @click="insertBeforeNode">在"二级 1-1" id=2 前插入节点</button>
+      <button @click="insertAfterNode">在"二级 1-1" id=2 后插入节点</button>
+      <button @click="removeNode">删除"二级 1-1" id=2 节点</button>
+      <button @click="updateChildren">更新"一级 1" id=1 的子节点列表</button>
+      <button @click="resetCrudData">重置数据</button>
     </div>
-    <div style="margin-top: 5px; color: #E6A23C; font-size: 12px;">
-      提示：CRUD 操作通过节点 ID 查找目标节点，会同时更新树结构和原始数据。如果目标节点不存在（已被删除），操作会被忽略并在控制台输出提示
+    <div style="margin-top: 5px; color: #e6a23c; font-size: 12px">
+      提示：CRUD 操作通过节点 ID
+      查找目标节点，会同时更新树结构和原始数据。如果目标节点不存在（已被删除），操作会被忽略并在控制台输出提示
+    </div>
+
+    <!-- 懒加载演示 -->
+    <h2>懒加载演示（异步加载数据）</h2>
+    <div class="example-section">
+      <div class="controls">
+        <button @click="resetLazyData">重置懒加载数据</button>
+      </div>
+
+      <div class="tree-container">
+        <el-tree
+          ref="lazyTree"
+          :data="lazyTreeData"
+          :props="lazyTreeProps"
+          node-key="id"
+          lazy
+          :load="loadNode"
+          :default-expanded-keys="[1]"
+          :default-checked-keys="[11, 22]"
+          show-checkbox
+          highlight-current
+          @node-expand="handleLazyNodeExpand"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -228,6 +250,18 @@ export default {
     return {
       logs: [],
       currentNodeInfo: '未选中',
+
+      // 懒加载相关数据
+      lazyTreeData: [
+        { id: 1, label: '根节点 1' },
+        { id: 2, label: '根节点 2' },
+        { id: 3, label: '叶子根节点', isLeaf: true },
+      ],
+      lazyTreeProps: {
+        children: 'children',
+        label: 'label',
+        isLeaf: 'isLeaf',
+      },
       treeData: [
         {
           label: '一级 1',
@@ -539,27 +573,40 @@ export default {
       const checkedKeys = tree.getCheckedKeys()
       const halfCheckedNodes = tree.getHalfCheckedNodes()
       const halfCheckedKeys = tree.getHalfCheckedKeys()
-      
-      this.checkedInfo = JSON.stringify({
-        checkedNodes: checkedNodes.map(n => n.label),
-        checkedKeys,
-        halfCheckedNodes: halfCheckedNodes.map(n => n.label),
-        halfCheckedKeys,
-      }, null, 2)
-      
+
+      this.checkedInfo = JSON.stringify(
+        {
+          checkedNodes: checkedNodes.map((n) => n.label),
+          checkedKeys,
+          halfCheckedNodes: halfCheckedNodes.map((n) => n.label),
+          halfCheckedKeys,
+        },
+        null,
+        2
+      )
+
       // eslint-disable-next-line no-console
-      console.log('选中信息：', { checkedNodes, checkedKeys, halfCheckedNodes, halfCheckedKeys })
+      console.log('选中信息：', {
+        checkedNodes,
+        checkedKeys,
+        halfCheckedNodes,
+        halfCheckedKeys,
+      })
     },
     getCheckedLeafInfo() {
       const tree = this.$refs.checkboxApiTree
       const leafNodes = tree.getCheckedNodes(true)
       const leafKeys = tree.getCheckedKeys(true)
-      
-      this.checkedInfo = JSON.stringify({
-        leafNodes: leafNodes.map(n => n.label),
-        leafKeys,
-      }, null, 2)
-      
+
+      this.checkedInfo = JSON.stringify(
+        {
+          leafNodes: leafNodes.map((n) => n.label),
+          leafKeys,
+        },
+        null,
+        2
+      )
+
       // eslint-disable-next-line no-console
       console.log('选中的叶子节点：', { leafNodes, leafKeys })
     },
@@ -594,11 +641,13 @@ export default {
       console.log(log, checkedInfo)
       this.logs.unshift(log)
       if (this.logs.length > 20) this.logs.pop()
-      
-      this.checkEventLog = `最后操作: ${data.label}\n选中节点: ${checkedInfo.checkedNodes.map(n => n.label).join(', ')}`
+
+      this.checkEventLog = `最后操作: ${
+        data.label
+      }\n选中节点: ${checkedInfo.checkedNodes.map((n) => n.label).join(', ')}`
     },
     handleCheckChange(data, checked, indeterminate) {
-      const status = indeterminate ? '半选' : (checked ? '选中' : '未选中')
+      const status = indeterminate ? '半选' : checked ? '选中' : '未选中'
       const log = `[check-change事件] ${data.label} → ${status}`
       // eslint-disable-next-line no-console
       console.log(log, { checked, indeterminate })
@@ -618,7 +667,7 @@ export default {
       }
       return null
     },
-    
+
     // CRUD 操作方法
     appendNode() {
       const tree = this.$refs.crudTree
@@ -631,7 +680,7 @@ export default {
       const parentData = this.findNodeById(this.crudTreeData, 1)
       if (parentData) {
         tree.append(newNode, parentData)
-        
+
         const log = `[添加节点] 在"${parentData.label}"下添加了"${newNode.label}"`
         // eslint-disable-next-line no-console
         console.log(log, this.crudTreeData)
@@ -653,7 +702,7 @@ export default {
       const refData = this.findNodeById(this.crudTreeData, 2)
       if (refData) {
         tree.insertBefore(newNode, refData)
-        
+
         const log = `[插入节点] 在"${refData.label}"前插入了"${newNode.label}"`
         // eslint-disable-next-line no-console
         console.log(log, this.crudTreeData)
@@ -675,7 +724,7 @@ export default {
       const refData = this.findNodeById(this.crudTreeData, 2)
       if (refData) {
         tree.insertAfter(newNode, refData)
-        
+
         const log = `[插入节点] 在"${refData.label}"后插入了"${newNode.label}"`
         // eslint-disable-next-line no-console
         console.log(log, this.crudTreeData)
@@ -692,7 +741,7 @@ export default {
       const nodeData = this.findNodeById(this.crudTreeData, 2)
       if (nodeData) {
         tree.remove(nodeData)
-        
+
         const log = `[删除节点] 删除了"${nodeData.label}"`
         // eslint-disable-next-line no-console
         console.log(log, this.crudTreeData)
@@ -717,7 +766,7 @@ export default {
         },
       ]
       tree.updateKeyChildren(1, newChildren)
-      
+
       const log = '[更新子节点] 更新了"一级 1"的所有子节点'
       // eslint-disable-next-line no-console
       console.log(log, this.crudTreeData)
@@ -727,7 +776,7 @@ export default {
     resetCrudData() {
       // 重置 nodeIdCounter
       this.nodeIdCounter = 10
-      
+
       // 重置数据
       this.crudTreeData = [
         {
@@ -761,10 +810,81 @@ export default {
           ],
         },
       ]
-      
+
       const log = '[重置] 重置了 CRUD 树的数据和计数器'
       // eslint-disable-next-line no-console
       console.log(log, this.crudTreeData)
+      this.logs.unshift(log)
+      if (this.logs.length > 20) this.logs.pop()
+    },
+
+    // 懒加载节点数据的方法
+    loadNode(node, resolve) {
+      const log = `[懒加载] 开始加载节点 "${node.data.label}" (id: ${node.data.id}) 的子数据...`
+      // eslint-disable-next-line no-console
+      console.log(log)
+      this.logs.unshift(log)
+      if (this.logs.length > 20) this.logs.pop()
+
+      // 模拟异步请求延迟
+      setTimeout(() => {
+        let children = []
+
+        // 根据节点ID生成不同的子数据
+        if (node.data.id === 1) {
+          children = [
+            { id: 11, label: '异步加载的节点 1-1', isLeaf: false },
+            { id: 12, label: '异步加载的节点 1-2' },
+            { id: 13, label: '叶子节点 1-3', isLeaf: true },
+          ]
+        } else if (node.data.id === 2) {
+          children = [
+            { id: 21, label: '异步加载的节点 2-1', isLeaf: false },
+            { id: 22, label: '叶子节点 2-2', isLeaf: true },
+          ]
+        } else if (node.data.id === 11) {
+          children = [
+            { id: 111, label: '三级节点 1-1-1', isLeaf: true },
+            { id: 112, label: '三级节点 1-1-2', isLeaf: true },
+          ]
+        } else if (node.data.id === 21) {
+          children = [
+            { id: 211, label: '三级节点 2-1-1', isLeaf: true },
+            { id: 212, label: '三级节点 2-1-2', isLeaf: true },
+            { id: 213, label: '三级节点 2-1-3', isLeaf: true },
+          ]
+        }
+
+        const loadedLog = `[懒加载] 节点 "${node.data.label}" 加载完成，子节点数量: ${children.length}`
+        // eslint-disable-next-line no-console
+        console.log(loadedLog, children)
+        this.logs.unshift(loadedLog)
+        if (this.logs.length > 20) this.logs.pop()
+
+        resolve(children)
+      }, 1000) // 模拟1秒的网络延迟
+    },
+
+    // 懒加载节点展开事件
+    handleLazyNodeExpand(nodeData, node, instance) {
+      const log = `[事件] 懒加载节点展开: "${nodeData.label}" (id: ${nodeData.id})`
+      // eslint-disable-next-line no-console
+      console.log(log, { nodeData, node, instance })
+      this.logs.unshift(log)
+      if (this.logs.length > 20) this.logs.pop()
+    },
+
+    // 重置懒加载数据
+    resetLazyData() {
+      this.lazyTreeData = [
+        { id: 1, label: '根节点 1' },
+        { id: 2, label: '根节点 2' },
+        { id: 3, label: '叶子根节点', isLeaf: true },
+      ]
+
+      const log = '[重置] 重置了懒加载树的数据'
+      // eslint-disable-next-line no-console
+      console.log(log, this.lazyTreeData)
       this.logs.unshift(log)
       if (this.logs.length > 20) this.logs.pop()
     },

@@ -13,6 +13,7 @@ export default class TreeStore {
       }
     }
 
+
     // 节点映射表
     this.nodesMap = {};
 
@@ -22,8 +23,17 @@ export default class TreeStore {
       store: this
     });
 
-    // 初始化默认选中的节点
-    this._initDefaultCheckedNodes();
+    // 处理懒加载模式的初始化
+    if (this.lazy && this.load) {
+      const loadFn = this.load;
+      loadFn(this.root, (data) => {
+        this.root.doCreateChildren(data);
+        this._initDefaultCheckedNodes();
+      });
+    } else {
+      // 初始化默认选中的节点
+      this._initDefaultCheckedNodes();
+    }
   }
 
   // 注册节点到映射表
@@ -324,6 +334,28 @@ export default class TreeStore {
 
     if (node) {
       node.setChecked(!!checked, deep);
+    }
+  }
+
+  // 设置默认展开的节点keys
+  setDefaultExpandedKeys(keys) {
+    keys = keys || [];
+    this.defaultExpandedKeys = keys;
+
+    keys.forEach((key) => {
+      const node = this.getNode(key);
+      if (node) {
+        node.expand(null, this.autoExpandParent);
+      }
+    });
+  }
+
+  // 初始化单个默认选中节点（懒加载模式使用）
+  _initDefaultCheckedNode(node) {
+    const defaultCheckedKeys = this.defaultCheckedKeys || [];
+
+    if (defaultCheckedKeys.indexOf(node.key) !== -1) {
+      node.setChecked(true, !this.checkStrictly);
     }
   }
 }

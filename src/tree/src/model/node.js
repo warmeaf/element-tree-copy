@@ -49,7 +49,7 @@ const reInitChecked = function(node) {
 const getPropertyFromData = function(node, prop) {
   const props = node.store.props;
   const data = node.data || {};
-  const config = props?.[prop];
+  const config = props && props[prop];
 
   if (typeof config === 'function') {
     return config(data, node);
@@ -59,6 +59,9 @@ const getPropertyFromData = function(node, prop) {
     const dataProp = data[prop];
     return dataProp === undefined ? '' : dataProp;
   }
+  
+  // 默认情况下返回空字符串
+  return '';
 };
 
 let nodeIdSeed = 0;
@@ -104,15 +107,14 @@ export default class Node {
     }
     store.registerNode(this);
 
-    // 检查是否是当前节点
-    const key = store.key;
-    if (
-      key &&
-      store.currentNodeKey !== undefined &&
-      this.key === store.currentNodeKey
-    ) {
-      store.currentNode = this;
-      store.currentNode.isCurrent = true;
+
+    // 处理懒加载时的叶子节点判断
+    const props = store.props;
+    if (props && typeof props.isLeaf !== 'undefined') {
+      const isLeaf = getPropertyFromData(this, 'isLeaf');
+      if (typeof isLeaf === 'boolean') {
+        this.isLeafByUser = isLeaf;
+      }
     }
 
     // 设置数据（如果不是懒加载）
@@ -122,11 +124,36 @@ export default class Node {
       if (store.defaultExpandAll) {
         this.expanded = true;
       }
+    } else if (this.level > 0 && store.lazy && store.defaultExpandAll) {
+      this.expand();
     }
 
     // 标记节点数据
     if (!Array.isArray(this.data)) {
       markNodeData(this, this.data);
+    }
+
+    // 处理默认展开的节点
+    if (!this.data) return;
+    const defaultExpandedKeys = store.defaultExpandedKeys;
+    const key = store.key;
+    if (key && defaultExpandedKeys && defaultExpandedKeys.indexOf(this.key) !== -1) {
+      this.expand(null, store.autoExpandParent);
+    }
+
+    // 检查是否是当前节点（需要在数据设置后检查）
+    if (
+      key &&
+      store.currentNodeKey !== undefined &&
+      this.key === store.currentNodeKey
+    ) {
+      store.currentNode = this;
+      store.currentNode.isCurrent = true;
+    }
+
+    // 在懒加载模式下初始化默认选中节点
+    if (store.lazy) {
+      store._initDefaultCheckedNode(this);
     }
 
     this.updateLeafState();
@@ -286,9 +313,34 @@ export default class Node {
     }
   }
 
-  // 展开（暂时只修改状态）
-  expand() {
-    this.expanded = true;
+  // 展开
+  expand(callback, expandParent) {
+    const done = () => {
+      if (expandParent) {
+        let parent = this.parent;
+        while (parent.level > 0) {
+          parent.expanded = true;
+          parent = parent.parent;
+        }
+      }
+      this.expanded = true;
+      if (callback) callback();
+    };
+
+    if (this.shouldLoadData()) {
+      this.loadData((data) => {
+        if (data instanceof Array) {
+          if (this.checked) {
+            this.setChecked(true, true);
+          } else if (!this.store.checkStrictly) {
+            reInitChecked(this);
+          }
+          done();
+        }
+      });
+    } else {
+      done();
+    }
   }
 
   // 收起
@@ -343,7 +395,13 @@ export default class Node {
       };
 
       if (this.shouldLoadData()) {
-        // 懒加载情况下的处理（暂不实现）
+        // 懒加载情况下，先加载数据再处理复选框
+        this.loadData(() => {
+          handleDescendants();
+          reInitChecked(this);
+        }, {
+          checked: value !== false
+        });
         return;
       } else {
         handleDescendants();
@@ -360,7 +418,38 @@ export default class Node {
 
   // 判断是否需要懒加载数据
   shouldLoadData() {
-    return this.store.lazy === true && this.store.load && !this.loaded;
+    return !!(this.store.lazy === true && this.store.load && !this.loaded);
+  }
+
+  // 懒加载数据
+  loadData(callback, defaultProps = {}) {
+    if (this.store.lazy === true && this.store.load && !this.loaded && (!this.loading || Object.keys(defaultProps).length)) {
+      this.loading = true;
+
+      const resolve = (children) => {
+        this.childNodes = [];
+        this.doCreateChildren(children, defaultProps);
+        this.loaded = true;
+        this.loading = false;
+        this.updateLeafState();
+        if (callback) {
+          callback.call(this, children);
+        }
+      };
+
+      this.store.load(this, resolve);
+    } else {
+      if (callback) {
+        callback.call(this);
+      }
+    }
+  }
+
+  // 根据数据数组创建子节点
+  doCreateChildren(array, defaultProps = {}) {
+    array.forEach((item) => {
+      this.insertChild(Object.assign({ data: item }, defaultProps), undefined, true);
+    });
   }
 }
 

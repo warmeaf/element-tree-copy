@@ -53,6 +53,7 @@ export default {
       },
     },
     defaultExpandAll: Boolean,
+    defaultExpandedKeys: Array,
     expandOnClickNode: {
       type: Boolean,
       default: true,
@@ -75,6 +76,15 @@ export default {
       type: Boolean,
       default: false,
     },
+    autoExpandParent: {
+      type: Boolean,
+      default: true,
+    },
+    lazy: {
+      type: Boolean,
+      default: false,
+    },
+    load: Function,
   },
 
   emits: [
@@ -110,6 +120,11 @@ export default {
       this.store.setDefaultCheckedKey(newVal)
     },
 
+    defaultExpandedKeys(newVal) {
+      this.store.defaultExpandedKeys = newVal
+      this.store.setDefaultExpandedKeys(newVal)
+    },
+
     checkStrictly(newVal) {
       this.store.checkStrictly = newVal
     },
@@ -121,12 +136,16 @@ export default {
     this.store = new TreeStore({
       key: this.nodeKey,
       data: this.data,
+      lazy: this.lazy,
       props: this.props,
-      defaultExpandAll: this.defaultExpandAll,
+      load: this.load,
       currentNodeKey: this.currentNodeKey,
       checkStrictly: this.checkStrictly,
-      defaultCheckedKeys: this.defaultCheckedKeys,
       checkDescendants: this.checkDescendants,
+      defaultCheckedKeys: this.defaultCheckedKeys,
+      defaultExpandedKeys: this.defaultExpandedKeys,
+      autoExpandParent: this.autoExpandParent,
+      defaultExpandAll: this.defaultExpandAll,
     })
 
     this.root = this.store.root
