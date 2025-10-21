@@ -19,10 +19,11 @@
       :role="indeterminate ? 'checkbox' : false"
       :aria-checked="indeterminate ? 'mixed' : false"
     >
-      <span class="el-checkbox__inner"></span>
+      <span class="el-checkbox__inner" />
       <!-- 当有 trueLabel 或 falseLabel 时，使用这个 input -->
       <input
         v-if="trueLabel || falseLabel"
+        v-model="model"
         class="el-checkbox__original"
         type="checkbox"
         :aria-hidden="indeterminate ? 'true' : 'false'"
@@ -30,28 +31,27 @@
         :disabled="disabled"
         :true-value="trueLabel"
         :false-value="falseLabel"
-        v-model="model"
         @change="handleChange"
         @focus="focus = true"
         @blur="focus = false"
-      />
+      >
       <!-- 默认情况使用这个 input -->
       <input
         v-else
+        v-model="model"
         class="el-checkbox__original"
         type="checkbox"
         :aria-hidden="indeterminate ? 'true' : 'false'"
         :disabled="disabled"
         :value="label"
         :name="name"
-        v-model="model"
         @change="handleChange"
         @focus="focus = true"
         @blur="focus = false"
-      />
+      >
     </span>
-    <span class="el-checkbox__label" v-if="$slots.default || label">
-      <slot></slot>
+    <span v-if="$slots.default || label" class="el-checkbox__label">
+      <slot />
       <template v-if="!$slots.default">{{ label }}</template>
     </span>
   </label>
@@ -109,6 +109,11 @@ export default {
     }
   },
 
+  created() {
+    // 如果传入了 checked prop 且为 true，初始化为选中状态
+    this.checked && this.addToStore()
+  },
+
   methods: {
     addToStore() {
       // 初始化选中状态
@@ -127,11 +132,6 @@ export default {
       // 触发 change 事件
       this.$emit('change', value, ev)
     }
-  },
-
-  created() {
-    // 如果传入了 checked prop 且为 true，初始化为选中状态
-    this.checked && this.addToStore()
   }
 }
 </script>

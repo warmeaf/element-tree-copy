@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import Tree from '../src/tree.vue'
 import TreeNode from '../src/tree-node.vue'
 

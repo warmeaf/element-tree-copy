@@ -195,6 +195,45 @@ export default class Node {
     return getPropertyFromData(this, 'disabled');
   }
 
+  get nextSibling() {
+    const parent = this.parent;
+    if (parent) {
+      const index = parent.childNodes.indexOf(this);
+      if (index > -1) {
+        return parent.childNodes[index + 1] || null;
+      }
+    }
+    return null;
+  }
+
+  get previousSibling() {
+    const parent = this.parent;
+    if (parent) {
+      const index = parent.childNodes.indexOf(this);
+      if (index > -1) {
+        return index > 0 ? parent.childNodes[index - 1] : null;
+      }
+    }
+    return null;
+  }
+
+  contains(target, deep = true) {
+    const walk = function(parent) {
+      const children = parent.childNodes || [];
+      let result = false;
+      for (let i = 0, j = children.length; i < j; i++) {
+        const child = children[i];
+        if (child === target || (deep && walk(child))) {
+          result = true;
+          break;
+        }
+      }
+      return result;
+    };
+
+    return walk(this);
+  }
+
   // 获取节点的子数据数组（用于数据同步）
   getChildren(forceInit = false) {
     if (this.level === 0) return this.data;
@@ -225,8 +264,8 @@ export default class Node {
     if (!(child instanceof Node)) {
       // 如果不是 batch 模式，需要同步更新原数据
       if (!batch) {
-        const children = this.getChildren(true) || [];
-        if (children.indexOf(child.data) === -1) {
+        const children = this.getChildren(true);
+        if (children && children.indexOf(child.data) === -1) {
           if (typeof index === 'undefined' || index < 0) {
             children.push(child.data);
           } else {
@@ -250,6 +289,7 @@ export default class Node {
     }
 
     this.updateLeafState();
+    return child;
   }
 
   // 在参考节点之前插入子节点
@@ -258,7 +298,7 @@ export default class Node {
     if (ref) {
       index = this.childNodes.indexOf(ref);
     }
-    this.insertChild(child, index);
+    return this.insertChild(child, index);
   }
 
   // 在参考节点之后插入子节点
@@ -268,7 +308,7 @@ export default class Node {
       index = this.childNodes.indexOf(ref);
       if (index !== -1) index += 1;
     }
-    this.insertChild(child, index);
+    return this.insertChild(child, index);
   }
 
   // 移除节点

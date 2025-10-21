@@ -32,10 +32,18 @@
       @current-change="handleCurrentChange"
     />
     <div style="margin-top: 10px">
-      <button @click="getCurrentInfo">获取当前节点</button>
-      <button @click="setCurrentByKey">设置当前节点为 id=3</button>
-      <button @click="setCurrentByData">通过数据设置当前节点</button>
-      <button @click="clearCurrent">清除当前节点</button>
+      <button @click="getCurrentInfo">
+        获取当前节点
+      </button>
+      <button @click="setCurrentByKey">
+        设置当前节点为 id=3
+      </button>
+      <button @click="setCurrentByData">
+        通过数据设置当前节点
+      </button>
+      <button @click="clearCurrent">
+        清除当前节点
+      </button>
       <div style="margin-top: 5px; color: #409eff">
         当前选中节点：{{ currentNodeInfo }}
       </div>
@@ -125,14 +133,24 @@
       default-expand-all
     />
     <div style="margin-top: 10px">
-      <button @click="getCheckedInfo">获取选中节点</button>
-      <button @click="getCheckedLeafInfo">获取选中的叶子节点</button>
+      <button @click="getCheckedInfo">
+        获取选中节点
+      </button>
+      <button @click="getCheckedLeafInfo">
+        获取选中的叶子节点
+      </button>
       <button @click="setCheckedByKeys">
         设置选中节点（通过keys: [2,6,9]）
       </button>
-      <button @click="setCheckedByNodes">设置选中节点（通过nodes）</button>
-      <button @click="setNodeChecked">设置单个节点选中（二级1-2）</button>
-      <button @click="clearChecked">清空选中</button>
+      <button @click="setCheckedByNodes">
+        设置选中节点（通过nodes）
+      </button>
+      <button @click="setNodeChecked">
+        设置单个节点选中（二级1-2）
+      </button>
+      <button @click="clearChecked">
+        清空选中
+      </button>
       <div
         v-if="checkedInfo"
         style="
@@ -200,12 +218,24 @@
       default-expand-all
     />
     <div style="margin-top: 10px">
-      <button @click="appendNode">添加子节点（在"一级 1" id=1 下添加）</button>
-      <button @click="insertBeforeNode">在"二级 1-1" id=2 前插入节点</button>
-      <button @click="insertAfterNode">在"二级 1-1" id=2 后插入节点</button>
-      <button @click="removeNode">删除"二级 1-1" id=2 节点</button>
-      <button @click="updateChildren">更新"一级 1" id=1 的子节点列表</button>
-      <button @click="resetCrudData">重置数据</button>
+      <button @click="appendNode">
+        添加子节点（在"一级 1" id=1 下添加）
+      </button>
+      <button @click="insertBeforeNode">
+        在"二级 1-1" id=2 前插入节点
+      </button>
+      <button @click="insertAfterNode">
+        在"二级 1-1" id=2 后插入节点
+      </button>
+      <button @click="removeNode">
+        删除"二级 1-1" id=2 节点
+      </button>
+      <button @click="updateChildren">
+        更新"一级 1" id=1 的子节点列表
+      </button>
+      <button @click="resetCrudData">
+        重置数据
+      </button>
     </div>
     <div style="margin-top: 5px; color: #e6a23c; font-size: 12px">
       提示：CRUD 操作通过节点 ID
@@ -216,7 +246,9 @@
     <h2>懒加载演示（异步加载数据）</h2>
     <div class="example-section">
       <div class="controls">
-        <button @click="resetLazyData">重置懒加载数据</button>
+        <button @click="resetLazyData">
+          重置懒加载数据
+        </button>
       </div>
 
       <div class="tree-container">
@@ -235,6 +267,25 @@
         />
       </div>
     </div>
+
+    <h2>拖拽功能演示</h2>
+    <el-tree
+      :data="dragTreeData"
+      node-key="id"
+      draggable
+      :allow-drag="allowDrag"
+      :allow-drop="allowDrop"
+      default-expand-all
+      @node-drag-start="handleDragStart"
+      @node-drag-enter="handleDragEnter"
+      @node-drag-leave="handleDragLeave"
+      @node-drag-over="handleDragOver"
+      @node-drag-end="handleDragEnd"
+      @node-drop="handleDrop"
+    />
+    <div style="margin-top: 6px; font-size: 12px; color: #409eff">
+      拖拽日志：{{ dragLog }}
+    </div>
   </div>
 </template>
 
@@ -250,6 +301,61 @@ export default {
     return {
       logs: [],
       currentNodeInfo: '未选中',
+
+      // 拖拽功能演示数据
+      dragTreeData: [
+        {
+          id: 1,
+          label: '一级节点 1',
+          children: [
+            {
+              id: 2,
+              label: '二级节点 1-1',
+              children: [
+                {
+                  id: 3,
+                  label: '三级节点 1-1-1',
+                },
+                {
+                  id: 4,
+                  label: '三级节点 1-1-2',
+                },
+              ],
+            },
+            {
+              id: 5,
+              label: '二级节点 1-2',
+            },
+          ],
+        },
+        {
+          id: 6,
+          label: '一级节点 2',
+          children: [
+            {
+              id: 7,
+              label: '二级节点 2-1',
+            },
+            {
+              id: 8,
+              label: '二级节点 2-2',
+              children: [
+                {
+                  id: 9,
+                  label: '三级节点 2-2-1',
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 10,
+          label: '一级节点 3（叶子节点）',
+        },
+      ],
+
+      // 拖拽事件日志
+      dragLog: '暂无拖拽操作',
 
       // 懒加载相关数据
       lazyTreeData: [
@@ -361,29 +467,29 @@ export default {
                 },
               ],
             },
-          ],
-        },
-        {
-          id: 4,
-          label: '一级 2',
-          children: [
             {
-              id: 5,
-              label: '二级 2-1',
+              id: 4,
+              label: '一级 2',
               children: [
                 {
-                  id: 6,
-                  label: '三级 2-1-1',
+                  id: 5,
+                  label: '二级 2-1',
+                  children: [
+                    {
+                      id: 6,
+                      label: '三级 2-1-1',
+                    },
+                  ],
                 },
-              ],
-            },
-            {
-              id: 7,
-              label: '二级 2-2',
-              children: [
                 {
-                  id: 8,
-                  label: '三级 2-2-1',
+                  id: 7,
+                  label: '二级 2-2',
+                  children: [
+                    {
+                      id: 8,
+                      label: '三级 2-2-1',
+                    },
+                  ],
                 },
               ],
             },
@@ -887,6 +993,47 @@ export default {
       console.log(log, this.lazyTreeData)
       this.logs.unshift(log)
       if (this.logs.length > 20) this.logs.pop()
+    },
+
+    // 拖拽相关方法
+    allowDrag(node) {
+      return node && !node.disabled
+    },
+    allowDrop(draggingNode, dropNode, type) {
+      if (!draggingNode || !dropNode) return false
+      if (type === 'inner') {
+        return !dropNode.isLeaf
+      }
+      return true
+    },
+    handleDragStart(node) {
+      this.dragLog = `开始拖拽：${node.data?.label || ''}`
+    },
+    handleDragEnter(draggingNode, dropNode) {
+      this.dragLog = `进入节点：${draggingNode.data?.label || ''} → ${
+        dropNode.data?.label || ''
+      }`
+    },
+    handleDragLeave(draggingNode, dropNode) {
+      this.dragLog = `离开节点：${draggingNode.data?.label || ''} → ${
+        dropNode.data?.label || ''
+      }`
+    },
+    handleDragOver(draggingNode, dropNode) {
+      this.dragLog = `经过节点：${draggingNode.data?.label || ''} → ${
+        dropNode.data?.label || ''
+      }`
+    },
+    handleDragEnd(draggingNode, dropNode, dropType) {
+      const d = draggingNode?.data?.label
+      const p = dropNode?.data?.label
+      const t = dropType || 'none'
+      this.dragLog = `结束拖拽：${d}${p ? ' → ' + p : ''}（${t}）`
+    },
+    handleDrop(draggingNode, dropNode, dropType) {
+      this.dragLog = `放置成功：${draggingNode.data?.label || ''} → ${
+        dropNode.data?.label || ''
+      }（${dropType}）`
     },
   },
 }

@@ -1,6 +1,7 @@
 <template>
   <div
     v-show="node.visible"
+    ref="node"
     class="el-tree-node"
     :class="{
       'is-expanded': expanded,
@@ -14,7 +15,12 @@
     :aria-expanded="expanded"
     :aria-disabled="node.disabled"
     :aria-checked="node.checked"
+    :draggable="tree.draggable"
     @click.stop="handleClick"
+    @dragstart.stop="handleDragStart"
+    @dragover.stop="handleDragOver"
+    @dragend.stop="handleDragEnd"
+    @drop.stop="handleDrop"
   >
     <div
       class="el-tree-node__content"
@@ -43,7 +49,7 @@
         v-model="node.checked"
         :indeterminate="node.indeterminate"
         :disabled="!!node.disabled"
-        @click.native.stop
+        @click.stop
         @change="handleCheckChange"
       />
 
@@ -85,7 +91,6 @@ export default {
         },
       },
       render(h) {
-        const parent = this.$parent
         const node = this.node
         return h('span', { class: 'el-tree-node__label' }, [node.label])
       },
@@ -215,6 +220,27 @@ export default {
 
     handleChildNodeExpand(nodeData, node, instance) {
       this.$emit('node-expand', nodeData, node, instance)
+    },
+
+    // 拖拽事件处理
+    handleDragStart(event) {
+      if (!this.tree.draggable) return
+      this.tree.$emit('tree-node-drag-start', event, this)
+    },
+
+    handleDragOver(event) {
+      if (!this.tree.draggable) return
+      this.tree.$emit('tree-node-drag-over', event, this)
+      event.preventDefault()
+    },
+
+    handleDrop(event) {
+      event.preventDefault()
+    },
+
+    handleDragEnd(event) {
+      if (!this.tree.draggable) return
+      this.tree.$emit('tree-node-drag-end', event, this)
     },
   },
 }

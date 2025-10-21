@@ -349,14 +349,5 @@ export default class TreeStore {
       }
     });
   }
-
-  // 初始化单个默认选中节点（懒加载模式使用）
-  _initDefaultCheckedNode(node) {
-    const defaultCheckedKeys = this.defaultCheckedKeys || [];
-
-    if (defaultCheckedKeys.indexOf(node.key) !== -1) {
-      node.setChecked(true, !this.checkStrictly);
-    }
-  }
 }
 

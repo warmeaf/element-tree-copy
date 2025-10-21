@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import Tree from '../src/tree.vue'
 
 describe('Tree 组件 - 复选框功能', () => {

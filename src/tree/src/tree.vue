@@ -3,6 +3,9 @@
     class="el-tree"
     :class="{
       'el-tree--highlight-current': highlightCurrent,
+      'is-dragging': !!dragState.draggingNode,
+      'is-drop-not-allow': !dragState.allowDrop,
+      'is-drop-inner': dragState.dropType === 'inner',
     }"
     role="tree"
   >
@@ -18,13 +21,21 @@
     <div v-if="isEmpty" class="el-tree__empty-block">
       <span class="el-tree__empty-text">{{ emptyText }}</span>
     </div>
+
+    <!-- 拖拽指示器 -->
+    <div
+      v-show="dragState.showDropIndicator"
+      ref="dropIndicator"
+      class="el-tree__drop-indicator"
+    />
   </div>
 </template>
 
 <script>
 import TreeStore from './model/tree-store'
-import { getNodeKey } from './model/util'
+import { getNodeKey, findNearestComponent } from './model/util'
 import ElTreeNode from './tree-node.vue'
+import { addClass, removeClass } from './utils/dom'
 
 export default {
   name: 'ElTree',
@@ -85,6 +96,13 @@ export default {
       default: false,
     },
     load: Function,
+    // 拖拽相关props
+    draggable: {
+      type: Boolean,
+      default: false,
+    },
+    allowDrag: Function,
+    allowDrop: Function,
   },
 
   emits: [
@@ -94,6 +112,13 @@ export default {
     'current-change',
     'check',
     'check-change',
+    // 拖拽相关事件
+    'node-drag-start',
+    'node-drag-enter',
+    'node-drag-leave',
+    'node-drag-over',
+    'node-drag-end',
+    'node-drop',
   ],
 
   data() {
@@ -101,6 +126,14 @@ export default {
       store: null,
       root: null,
       currentNode: null,
+      // 拖拽状态
+      dragState: {
+        showDropIndicator: false,
+        draggingNode: null,
+        dropNode: null,
+        allowDrop: true,
+        dropType: null,
+      },
     }
   },
 
@@ -149,6 +182,198 @@ export default {
     })
 
     this.root = this.store.root
+
+    // 拖拽事件监听
+    const dragState = this.dragState
+
+    // 拖拽开始
+    this.$on('tree-node-drag-start', (event, treeNode) => {
+      if (
+        typeof this.allowDrag === 'function' &&
+        !this.allowDrag(treeNode.node)
+      ) {
+        event.preventDefault()
+        return false
+      }
+      event.dataTransfer.effectAllowed = 'move'
+
+      // 设置拖拽数据
+      try {
+        event.dataTransfer.setData('text/plain', '')
+      } catch (e) {}
+
+      dragState.draggingNode = treeNode
+      this.$emit('node-drag-start', treeNode.node, event)
+    })
+
+    // 拖拽经过
+    this.$on('tree-node-drag-over', (event) => {
+      const dropNode = findNearestComponent(event.target, 'ElTreeNode')
+      const oldDropNode = dragState.dropNode
+      if (oldDropNode && oldDropNode !== dropNode) {
+        removeClass(oldDropNode.$el, 'is-drop-inner')
+      }
+      const draggingNode = dragState.draggingNode
+      if (!draggingNode || !dropNode) return
+
+      let dropPrev = true
+      let dropInner = true
+      let dropNext = true
+      let userAllowDropInner = true
+
+      if (typeof this.allowDrop === 'function') {
+        dropPrev = this.allowDrop(draggingNode.node, dropNode.node, 'prev')
+        userAllowDropInner = dropInner = this.allowDrop(
+          draggingNode.node,
+          dropNode.node,
+          'inner'
+        )
+        dropNext = this.allowDrop(draggingNode.node, dropNode.node, 'next')
+      }
+
+      event.dataTransfer.dropEffect = dropInner ? 'move' : 'none'
+
+      if ((dropPrev || dropInner || dropNext) && oldDropNode !== dropNode) {
+        if (oldDropNode) {
+          this.$emit(
+            'node-drag-leave',
+            draggingNode.node,
+            oldDropNode.node,
+            event
+          )
+        }
+        this.$emit('node-drag-enter', draggingNode.node, dropNode.node, event)
+      }
+
+      if (dropPrev || dropInner || dropNext) {
+        dragState.dropNode = dropNode
+      }
+
+      // 检查拖拽限制
+      if (dropNode.node.nextSibling === draggingNode.node) {
+        dropNext = false
+      }
+      if (dropNode.node.previousSibling === draggingNode.node) {
+        dropPrev = false
+      }
+      if (dropNode.node.contains(draggingNode.node, false)) {
+        dropInner = false
+      }
+      if (
+        draggingNode.node === dropNode.node ||
+        draggingNode.node.contains(dropNode.node)
+      ) {
+        dropPrev = false
+        dropInner = false
+        dropNext = false
+      }
+
+      const targetPosition = dropNode.$el.getBoundingClientRect()
+      const treePosition = this.$el.getBoundingClientRect()
+
+      let dropType
+      const prevPercent = dropPrev
+        ? dropInner
+          ? 0.25
+          : dropNext
+          ? 0.45
+          : 1
+        : -1
+      const nextPercent = dropNext
+        ? dropInner
+          ? 0.75
+          : dropPrev
+          ? 0.55
+          : 0
+        : 1
+
+      let indicatorTop = -9999
+      const distance = event.clientY - targetPosition.top
+      if (distance < targetPosition.height * prevPercent) {
+        dropType = 'before'
+      } else if (distance > targetPosition.height * nextPercent) {
+        dropType = 'after'
+      } else if (dropInner) {
+        dropType = 'inner'
+      } else {
+        dropType = 'none'
+      }
+
+      const iconPosition = dropNode.$el
+        .querySelector('.el-tree-node__expand-icon')
+        .getBoundingClientRect()
+      const dropIndicator = this.$refs.dropIndicator
+      if (dropType === 'before') {
+        indicatorTop = iconPosition.top - treePosition.top
+      } else if (dropType === 'after') {
+        indicatorTop = iconPosition.bottom - treePosition.top
+      }
+      dropIndicator.style.top = indicatorTop + 'px'
+      dropIndicator.style.left = iconPosition.right - treePosition.left + 'px'
+
+      if (dropType === 'inner') {
+        addClass(dropNode.$el, 'is-drop-inner')
+      } else {
+        removeClass(dropNode.$el, 'is-drop-inner')
+      }
+
+      dragState.showDropIndicator =
+        dropType === 'before' || dropType === 'after'
+      dragState.allowDrop = dragState.showDropIndicator || userAllowDropInner
+      dragState.dropType = dropType
+      this.$emit('node-drag-over', draggingNode.node, dropNode.node, event)
+    })
+
+    // 拖拽结束
+    this.$on('tree-node-drag-end', (event) => {
+      const { draggingNode, dropType, dropNode } = dragState
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+
+      if (draggingNode && dropNode) {
+        const draggingNodeCopy = { data: draggingNode.node.data }
+        if (dropType !== 'none') {
+          draggingNode.node.remove()
+        }
+        if (dropType === 'before') {
+          dropNode.node.parent.insertBefore(draggingNodeCopy, dropNode.node)
+        } else if (dropType === 'after') {
+          dropNode.node.parent.insertAfter(draggingNodeCopy, dropNode.node)
+        } else if (dropType === 'inner') {
+          dropNode.node.insertChild(draggingNodeCopy)
+        }
+        if (dropType !== 'none') {
+          this.store.registerNode(draggingNodeCopy)
+        }
+
+        removeClass(dropNode.$el, 'is-drop-inner')
+
+        this.$emit(
+          'node-drag-end',
+          draggingNode.node,
+          dropNode.node,
+          dropType,
+          event
+        )
+        if (dropType !== 'none') {
+          this.$emit(
+            'node-drop',
+            draggingNode.node,
+            dropNode.node,
+            dropType,
+            event
+          )
+        }
+      }
+      if (draggingNode && !dropNode) {
+        this.$emit('node-drag-end', draggingNode.node, null, dropType, event)
+      }
+
+      dragState.showDropIndicator = false
+      dragState.draggingNode = null
+      dragState.dropNode = null
+      dragState.allowDrop = true
+    })
   },
 
   methods: {

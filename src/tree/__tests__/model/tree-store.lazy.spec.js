@@ -107,7 +107,7 @@ describe('TreeStore - 懒加载功能', () => {
       const store = new TreeStore({
         lazy: true,
         load: mockLoad,
-        nodeKey: 'id',
+        key: 'id',
         data: []
       })
 
@@ -134,7 +134,7 @@ describe('TreeStore - 懒加载功能', () => {
       const store = new TreeStore({
         lazy: true,
         load: mockLoad,
-        nodeKey: 'id',
+        key: 'id',
         data: []
       })
 
