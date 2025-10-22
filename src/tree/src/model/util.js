@@ -12,6 +12,7 @@ export const markNodeData = function(node, data) {
 
 export const getNodeKey = function(key, data) {
   if (!key) return data[NODE_KEY];
+  if (data === null || data === undefined) return undefined;
   return data[key];
 };
 

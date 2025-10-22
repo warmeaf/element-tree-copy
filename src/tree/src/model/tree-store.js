@@ -185,7 +185,7 @@ export default class TreeStore {
 
   // 设置默认选中的 keys
   setDefaultCheckedKey(newVal) {
-    if (newVal !== this.defaultCheckedKeys) {
+    if (newVal !== this.defaultCheckedKeys && Array.isArray(newVal)) {
       this.defaultCheckedKeys = newVal;
       // 清除所有旧的选中状态，然后设置新的选中状态
       const key = this.key;
@@ -348,6 +348,70 @@ export default class TreeStore {
         node.expand(null, this.autoExpandParent);
       }
     });
+  }
+
+  // 过滤节点
+  filter(value) {
+    const filterNodeMethod = this.filterNodeMethod;
+    const lazy = this.lazy;
+    if (!filterNodeMethod) throw new Error('[Tree] filterNodeMethod is required when filter');
+
+    const traverse = function(node) {
+      const childNodes = node.root ? node.root.childNodes : node.childNodes;
+      childNodes.forEach((child) => {
+        child.visible = filterNodeMethod.call(child, value, child.data, child);
+
+        if (!child.visible) {
+          // 如果当前节点不可见，检查其子节点是否有可见的
+          let hasVisibleChild = false;
+          const traverseChildren = function(node) {
+            const childNodes = node.root ? node.root.childNodes : node.childNodes;
+            childNodes.forEach((child) => {
+              if (child.visible) {
+                hasVisibleChild = true;
+                return;
+              }
+              traverseChildren(child);
+            });
+          };
+          traverseChildren(child);
+
+          // 如果有可见的子节点，父节点也显示出来
+          if (hasVisibleChild) {
+            child.visible = true;
+          }
+        }
+
+        // 递归处理子节点
+        traverse(child);
+      });
+    };
+
+    // 从根节点开始遍历
+    traverse(this);
+
+    // 如果是懒加载模式，需要处理未加载的节点
+    if (lazy) {
+      const allNodes = this._getAllNodes();
+      allNodes.forEach((node) => {
+        if (!node.visible && node.loaded && node.childNodes.length > 0) {
+          let hasVisibleChild = false;
+          const checkChildren = function(node) {
+            node.childNodes.forEach((child) => {
+              if (child.visible) {
+                hasVisibleChild = true;
+              } else {
+                checkChildren(child);
+              }
+            });
+          };
+          checkChildren(node);
+          if (hasVisibleChild) {
+            node.visible = true;
+          }
+        }
+      });
+    }
   }
 }
 

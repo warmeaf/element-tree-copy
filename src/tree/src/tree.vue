@@ -3,6 +3,7 @@
     class="el-tree"
     :class="{
       'el-tree--highlight-current': highlightCurrent,
+      'el-tree--keyboard-focus': keyboardFocus,
       'is-dragging': !!dragState.draggingNode,
       'is-drop-not-allow': !dragState.allowDrop,
       'is-drop-inner': dragState.dropType === 'inner',
@@ -14,7 +15,9 @@
       :key="getNodeKey(child)"
       :node="child"
       :props="props"
+      :render-after-expand="renderAfterExpand"
       :show-checkbox="showCheckbox"
+      :render-content="renderContent"
       @node-expand="handleNodeExpand"
     />
 
@@ -70,6 +73,7 @@ export default {
       default: true,
     },
     highlightCurrent: Boolean,
+    renderContent: Function,
     currentNodeKey: [String, Number],
     indent: {
       type: Number,
@@ -103,6 +107,18 @@ export default {
     },
     allowDrag: Function,
     allowDrop: Function,
+    // 过滤相关props
+    filterNodeMethod: Function,
+    accordion: Boolean,
+    renderAfterExpand: {
+      type: Boolean,
+      default: true,
+    },
+    // 键盘导航焦点样式控制
+    keyboardFocus: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   emits: [
@@ -134,13 +150,24 @@ export default {
         allowDrop: true,
         dropType: null,
       },
+      // 键盘导航相关
+      treeItems: null,
+      checkboxItems: [],
     }
   },
 
   computed: {
     isEmpty() {
       const { childNodes } = this.root
-      return !childNodes || childNodes.length === 0
+      return (
+        !childNodes ||
+        childNodes.length === 0 ||
+        childNodes.every(({ visible }) => !visible)
+      )
+    },
+
+    treeItemArray() {
+      return Array.prototype.slice.call(this.treeItems)
     },
   },
 
@@ -161,6 +188,12 @@ export default {
     checkStrictly(newVal) {
       this.store.checkStrictly = newVal
     },
+
+    checkboxItems(val) {
+      Array.prototype.forEach.call(val, (checkbox) => {
+        checkbox.setAttribute('tabindex', -1)
+      })
+    },
   },
 
   created() {
@@ -179,6 +212,7 @@ export default {
       defaultExpandedKeys: this.defaultExpandedKeys,
       autoExpandParent: this.autoExpandParent,
       defaultExpandAll: this.defaultExpandAll,
+      filterNodeMethod: this.filterNodeMethod,
     })
 
     this.root = this.store.root
@@ -200,7 +234,9 @@ export default {
       // 设置拖拽数据
       try {
         event.dataTransfer.setData('text/plain', '')
-      } catch (e) {}
+      } catch (e) {
+        // Ignore IE11 error
+      }
 
       dragState.draggingNode = treeNode
       this.$emit('node-drag-start', treeNode.node, event)
@@ -376,12 +412,42 @@ export default {
     })
   },
 
+  mounted() {
+    this.initTabIndex()
+    this.$el.addEventListener('keydown', this.handleKeydown)
+  },
+
+  updated() {
+    this.treeItems = this.$el.querySelectorAll('[role=treeitem]')
+    this.checkboxItems = this.$el.querySelectorAll('input[type=checkbox]')
+    this.initTabIndex()
+  },
+
   methods: {
+    filter(value) {
+      if (!this.filterNodeMethod)
+        throw new Error('[Tree] filterNodeMethod is required when filter')
+      this.store.filter(value)
+    },
+
     getNodeKey(node) {
       return getNodeKey(this.nodeKey, node.data)
     },
 
     handleNodeExpand(nodeData, node, instance) {
+      // 手风琴模式：展开当前节点时收起其他同级节点
+      if (this.accordion) {
+        this.store.setCurrentNode(node)
+        const siblings = node.parent
+          ? node.parent.childNodes
+          : this.root.childNodes
+        siblings.forEach((sibling) => {
+          if (sibling !== node && sibling.expanded) {
+            sibling.collapse()
+          }
+        })
+      }
+
       this.$emit('node-expand', nodeData, node, instance)
     },
 
@@ -407,6 +473,7 @@ export default {
       if (!this.nodeKey)
         throw new Error('[Tree] nodeKey is required in setCurrentKey')
       this.store.setCurrentNodeKey(key)
+      this.initTabIndex()
     },
 
     getNode(data) {
@@ -435,6 +502,7 @@ export default {
 
     setChecked(data, checked, deep) {
       this.store.setChecked(data, checked, deep)
+      this.initTabIndex()
     },
 
     getHalfCheckedNodes() {
@@ -470,6 +538,94 @@ export default {
       if (!this.nodeKey)
         throw new Error('[Tree] nodeKey is required in updateKeyChild')
       this.store.updateChildren(key, data)
+    },
+
+    // 初始化tab索引
+    initTabIndex() {
+      this.treeItems = this.$el.querySelectorAll('.is-focusable[role=treeitem]')
+      this.checkboxItems = this.$el.querySelectorAll('input[type=checkbox]')
+
+      // 先设置所有项目为 -1
+      Array.prototype.forEach.call(this.treeItems, (item) => {
+        item.setAttribute('tabindex', -1)
+      })
+
+      // 查找当前选中的项目
+      const checkedItem = this.$el.querySelectorAll('.is-checked[role=treeitem]')
+      const currentItem = this.$el.querySelectorAll('.is-current[role=treeitem]')
+
+      if (checkedItem.length) {
+        checkedItem[0].setAttribute('tabindex', 0)
+      } else if (currentItem.length) {
+        currentItem[0].setAttribute('tabindex', 0)
+      } else {
+        this.treeItems[0] && this.treeItems[0].setAttribute('tabindex', 0)
+      }
+    },
+
+    // 处理键盘事件
+    handleKeydown(ev) {
+      const currentItem = ev.target
+      if (!currentItem || currentItem.className.indexOf('el-tree-node') === -1) return
+      const keyCode = ev.keyCode
+      this.treeItems = this.$el.querySelectorAll('.is-focusable[role=treeitem]')
+
+      // 如果当前元素不在 treeItems 中，尝试找到第一个有 tabindex="0" 的元素
+      let currentIndex = this.treeItemArray.indexOf(currentItem)
+      if (currentIndex === -1 && this.treeItemArray.length > 0) {
+        // 找到当前有 tabindex="0" 的元素
+        for (let i = 0; i < this.treeItemArray.length; i++) {
+          if (this.treeItemArray[i].getAttribute('tabindex') === '0') {
+            currentIndex = i
+            break
+          }
+        }
+        // 如果还是找不到，使用第一个元素
+        if (currentIndex === -1) currentIndex = 0
+      }
+
+      let nextIndex
+
+      if ([38, 40].indexOf(keyCode) > -1) {
+        // up、down
+        ev.preventDefault()
+        if (keyCode === 38) {
+          // up
+          nextIndex = currentIndex !== 0 ? currentIndex - 1 : 0
+        } else {
+          nextIndex = (currentIndex < this.treeItemArray.length - 1) ? currentIndex + 1 : 0
+        }
+        this.treeItemArray[nextIndex].focus() // 选中
+      }
+
+      if ([37, 39].indexOf(keyCode) > -1) {
+        // left、right 控制展开收起
+        ev.preventDefault()
+        currentItem.click() // 选中节点并可能触发展开
+      }
+
+      // Enter 和 Space 键只处理 checkbox，不触发展开收起
+      const hasInput = currentItem.querySelector('[type="checkbox"]')
+      if ([13, 32].indexOf(keyCode) > -1 && hasInput) {
+        // space enter 选中 checkbox
+        ev.preventDefault()
+        hasInput.click()
+      }
+    },
+
+    // 获取节点路径
+    getNodePath(data) {
+      if (!this.nodeKey)
+        throw new Error('[Tree] nodeKey is required in getNodePath')
+      const node = this.store.getNode(data)
+      if (!node) return []
+      const path = [node.data]
+      let parent = node.parent
+      while (parent && parent !== this.root) {
+        path.push(parent.data)
+        parent = parent.parent
+      }
+      return path.reverse()
     },
   },
 }

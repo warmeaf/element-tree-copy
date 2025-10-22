@@ -15,7 +15,12 @@
     :aria-expanded="expanded"
     :aria-disabled="node.disabled"
     :aria-checked="node.checked"
+    :aria-selected="node.isCurrent"
+    :aria-level="node.level"
+    :aria-setsize="node.parent ? node.parent.childNodes.length : 0"
+    :aria-posinset="getAriaPosInSet()"
     :draggable="tree.draggable"
+    :data-key="getNodeKey(node)"
     @click.stop="handleClick"
     @dragstart.stop="handleDragStart"
     @dragover.stop="handleDragOver"
@@ -27,10 +32,7 @@
       :style="{ 'padding-left': (node.level - 1) * tree.indent + 'px' }"
     >
       <!-- Loading 图标 -->
-      <span
-        v-if="node.loading"
-        class="el-tree-node__loading-icon"
-      />
+      <span v-if="node.loading" class="el-tree-node__loading-icon" />
 
       <!-- 展开图标 -->
       <span
@@ -49,7 +51,7 @@
         v-model="node.checked"
         :indeterminate="node.indeterminate"
         :disabled="!!node.disabled"
-        @click.stop
+        @click.native.stop
         @change="handleCheckChange"
       />
 
@@ -65,7 +67,9 @@
           :key="getNodeKey(child)"
           :node="child"
           :props="props"
+          :render-after-expand="renderAfterExpand"
           :show-checkbox="showCheckbox"
+          :render-content="renderContent"
           @node-expand="handleChildNodeExpand"
         />
       </div>
@@ -91,8 +95,45 @@ export default {
         },
       },
       render(h) {
+        const parent = this.$parent
+        const tree = parent.tree
         const node = this.node
-        return h('span', { class: 'el-tree-node__label' }, [node.label])
+        const { data, store } = node
+        const { renderContent } = parent
+
+        // 渲染优先级：renderContent > 默认插槽 > 默认渲染
+        let result = null
+
+        // 1. 尝试使用 renderContent
+        if (renderContent) {
+          try {
+            result = renderContent.call(parent.renderProxy, h, { _self: tree.$vnode.context, node, data, store })
+            // 如果 renderContent 返回 null 或 undefined，降级到默认插槽
+            if (result == null) {
+              result = null // 重置为null，让后面的逻辑处理降级
+            }
+          } catch (error) {
+            console.error('[Tree] Error in renderContent:', error)
+            result = null // 出错时重置为null，让后面的逻辑处理降级
+          }
+        }
+
+        // 2. 如果 renderContent 失败或返回 null，尝试使用默认插槽
+        if (result === null && tree.$scopedSlots.default) {
+          try {
+            result = tree.$scopedSlots.default({ node, data })
+          } catch (error) {
+            console.error('[Tree] Error in default slot:', error)
+            result = null // 插槽出错时重置为null，使用默认渲染
+          }
+        }
+
+        // 3. 如果以上都失败，使用默认渲染
+        if (result === null) {
+          result = h('span', { class: 'el-tree-node__label' }, [node.label])
+        }
+
+        return result
       },
     },
   },
@@ -111,6 +152,11 @@ export default {
       type: Boolean,
       default: false,
     },
+    renderAfterExpand: {
+      type: Boolean,
+      default: true,
+    },
+    renderContent: Function,
   },
 
   emits: ['node-expand'],
@@ -121,6 +167,7 @@ export default {
       expanded: false,
       oldChecked: null,
       oldIndeterminate: null,
+      renderProxy: null,
     }
   },
 
@@ -147,6 +194,9 @@ export default {
     } else {
       this.tree = parent.tree
     }
+
+    // 初始化渲染代理
+    this._renderProxy = this
 
     // 同步展开状态
     if (this.node.expanded) {
@@ -206,7 +256,10 @@ export default {
     },
 
     handleCheckChange(value, ev) {
-      this.node.setChecked(ev.target.checked, !this.tree.checkStrictly)
+      // 如果是直接点击checkbox，value是checkbox传递的新值
+      // 如果是通过代码调用，ev可能是undefined
+      const checkedValue = ev && ev.target ? ev.target.checked : value
+      this.node.setChecked(checkedValue, !this.tree.checkStrictly)
       this.$nextTick(() => {
         const store = this.tree.store
         this.tree.$emit('check', this.node.data, {
@@ -241,6 +294,13 @@ export default {
     handleDragEnd(event) {
       if (!this.tree.draggable) return
       this.tree.$emit('tree-node-drag-end', event, this)
+    },
+
+    // 获取节点在同级中的位置，用于无障碍访问
+    getAriaPosInSet() {
+      if (!this.node.parent) return 1
+      const siblings = this.node.parent.childNodes
+      return siblings.indexOf(this.node) + 1
     },
   },
 }

@@ -143,3 +143,37 @@
   transition: 0.3s height ease-in-out, 0.3s padding-top ease-in-out, 0.3s padding-bottom ease-in-out;
 }
 
+/* 过滤功能相关样式 */
+.el-tree-node.is-hidden {
+  display: none;
+}
+
+/* 键盘导航焦点样式 - 默认启用 */
+.el-tree--keyboard-focus .el-tree-node.is-focusable:focus {
+  outline: 2px solid #409eff;
+  outline-offset: -2px;
+}
+
+/* 禁用状态样式 */
+.el-tree-node.is-disabled > .el-tree-node__content {
+  color: #c0c4cc;
+  cursor: not-allowed;
+}
+
+.el-tree-node.is-disabled > .el-tree-node__content:hover {
+  background-color: transparent;
+}
+
+/* 自定义节点内容样式 */
+.el-tree-node__content .custom-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 过滤高亮样式 */
+.el-tree-node__label.highlight {
+  color: #409eff;
+  font-weight: bold;
+}
+
