@@ -405,7 +405,7 @@ export default {
       this.currentNodePath = []
     },
 
-    handlePathNodeClick(data, node) {
+    handlePathNodeClick() {
       this.showNodePath()
     },
   },

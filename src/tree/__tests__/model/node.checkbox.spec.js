@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import Node, { getChildState } from '../../src/model/node.js'
 import TreeStore from '../../src/model/tree-store.js'
 
@@ -15,6 +15,10 @@ describe('Node - 复选框功能', () => {
           children: 'children'
         }
       })
+    })
+
+    afterEach(() => {
+      store = null
     })
 
     it('全部子节点选中时返回 all: true', () => {
@@ -99,6 +103,56 @@ describe('Node - 复选框功能', () => {
       expect(state.none).toBe(true)
       expect(state.allWithoutDisable).toBe(true)
     })
+
+    // 新增：空子节点数组的边界情况测试
+    it('空子节点数组应该返回正确的初始状态', () => {
+      const state = getChildState([])
+
+      expect(state.all).toBe(true)
+      expect(state.none).toBe(true)
+      expect(state.half).toBe(false)
+      expect(state.allWithoutDisable).toBe(true)
+    })
+
+    // 新增：混合禁用和选中状态的复杂场景
+    it('复杂混合状态场景测试', () => {
+      const children = [
+        new Node({ data: { id: 1, label: 'node1', disabled: true }, store, checked: true }),
+        new Node({ data: { id: 2, label: 'node2' }, store, checked: false }),
+        new Node({ data: { id: 3, label: 'node3', disabled: true }, store, checked: false }),
+        new Node({ data: { id: 4, label: 'node4' }, store, checked: true })
+      ]
+
+      const state = getChildState(children)
+
+      expect(state.all).toBe(false)
+      expect(state.none).toBe(false)
+      expect(state.half).toBe(true)
+      expect(state.allWithoutDisable).toBe(false) // 有非禁用节点未选中
+    })
+
+    // 新增：性能测试 - 大量子节点的状态计算
+    it('大量子节点状态计算性能测试', () => {
+      const startTime = performance.now()
+      const children = []
+
+      // 创建1000个子节点
+      for (let i = 0; i < 1000; i++) {
+        children.push(new Node({
+          data: { id: i, label: `node${i}` },
+          store,
+          checked: i % 2 === 0
+        }))
+      }
+
+      const state = getChildState(children)
+      const endTime = performance.now()
+
+      expect(endTime - startTime).toBeLessThan(50) // 应该在50ms内完成
+      expect(state.all).toBe(false)
+      expect(state.none).toBe(false)
+      expect(state.half).toBe(true)
+    })
   })
 
   describe('setChecked 方法', () => {
@@ -113,6 +167,10 @@ describe('Node - 复选框功能', () => {
           children: 'children'
         }
       })
+    })
+
+    afterEach(() => {
+      store = null
     })
 
     it('设置节点为选中状态', () => {
@@ -445,6 +503,90 @@ describe('Node - 复选框功能', () => {
       // 父节点应该是半选状态（因为有一个禁用节点选中）
       expect(parent.checked).toBe(false)
       expect(parent.indeterminate).toBe(true)
+    })
+
+    // 新增：批量操作性能测试
+    it('大量节点批量操作性能测试', () => {
+      const data = {
+        id: 1,
+        label: 'root',
+        children: []
+      }
+
+      // 创建深层嵌套结构
+      for (let i = 0; i < 100; i++) {
+        data.children.push({
+          id: i + 2,
+          label: `child${i}`,
+          children: []
+        })
+      }
+
+      const startTime = performance.now()
+      const root = new Node({ data, store })
+
+      // 批量选中所有节点
+      root.setChecked(true, true)
+      const endTime = performance.now()
+
+      expect(endTime - startTime).toBeLessThan(100) // 应该在100ms内完成
+      expect(root.checked).toBe(true)
+      expect(root.childNodes.length).toBe(100)
+      root.childNodes.forEach(child => {
+        expect(child.checked).toBe(true)
+      })
+    })
+
+    // 新增：错误处理测试 - 无效参数
+    it('无效参数处理测试', () => {
+      const node = new Node({
+        data: { id: 1, label: 'node' },
+        store
+      })
+
+      // 测试各种无效参数
+      expect(() => node.setChecked(null, false)).not.toThrow()
+      expect(() => node.setChecked(undefined, false)).not.toThrow()
+      expect(() => node.setChecked(NaN, false)).not.toThrow()
+      expect(() => node.setChecked({}, false)).not.toThrow()
+
+      // 确保节点状态没有异常变化
+      expect(node.checked).toBe(false)
+      expect(node.indeterminate).toBe(false)
+    })
+
+    // 新增：多次快速操作状态一致性测试
+    it('多次快速操作状态一致性测试', () => {
+      const node = new Node({
+        data: { id: 1, label: 'node' },
+        store
+      })
+
+      // 快速连续操作
+      node.setChecked(true, false)
+      node.setChecked('half', false)
+      node.setChecked(false, false)
+      node.setChecked(true, false)
+
+      // 最终状态应该正确
+      expect(node.checked).toBe(true)
+      expect(node.indeterminate).toBe(false)
+    })
+
+    // 新增：循环引用检测测试
+    it('循环引用检测测试', () => {
+      const data1 = { id: 1, label: 'node1' }
+      const data2 = { id: 2, label: 'node2' }
+
+      const node1 = new Node({ data: data1, store })
+      const node2 = new Node({ data: data2, store, parent: node1 })
+
+      node1.childNodes.push(node2)
+
+      // 设置选中状态不应该导致无限循环
+      expect(() => node1.setChecked(true, true)).not.toThrow()
+      expect(node1.checked).toBe(true)
+      expect(node2.checked).toBe(true)
     })
   })
 })

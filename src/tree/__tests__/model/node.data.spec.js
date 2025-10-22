@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import Node from '../../src/model/node.js'
 import TreeStore from '../../src/model/tree-store.js'
 
@@ -15,6 +15,10 @@ describe('Node - 数据处理', () => {
           children: 'children'
         }
       })
+    })
+
+    afterEach(() => {
+      store = null
     })
 
     it('应该能够递归创建子节点树', () => {
@@ -144,6 +148,104 @@ describe('Node - 数据处理', () => {
 
       expect(node.childNodes.length).toBe(2)
     })
+
+    // 新增：错误处理测试 - 无效数据
+    it('应该处理无效的children数据', () => {
+      const testCases = [
+        { children: null },
+        { children: undefined },
+        { children: 'invalid' },
+        { children: 123 },
+        { children: [{}] }, // 缺少id的无效子节点
+        { children: [{ id: null, label: 'invalid' }] }
+      ]
+
+      testCases.forEach((testCase, index) => {
+        expect(() => {
+          const _node = new Node({
+            data: { id: 1, label: 'test', ...testCase },
+            store: store
+          })
+        }).not.toThrow(`测试用例 ${index} 不应该抛出错误`)
+      })
+    })
+
+    // 新增：大数据量性能测试
+    it('大数据量节点创建性能测试', () => {
+      const startTime = performance.now()
+
+      // 创建深层嵌套的大数据结构
+      const data = { id: 1, label: 'root', children: [] }
+
+      function createDeepNode(id, depth) {
+        if (depth === 0) return { id, label: `node-${id}` }
+
+        return {
+          id,
+          label: `node-${id}`,
+          children: [
+            createDeepNode(id * 10 + 1, depth - 1),
+            createDeepNode(id * 10 + 2, depth - 1)
+          ]
+        }
+      }
+
+      // 创建5层深度的树结构
+      for (let i = 0; i < 50; i++) {
+        data.children.push(createDeepNode(i + 2, 4))
+      }
+
+      const node = new Node({ data, store })
+      const endTime = performance.now()
+
+      expect(endTime - startTime).toBeLessThan(200) // 应该在200ms内完成
+      expect(node.childNodes.length).toBe(50)
+    })
+
+    // 新增：数据更新时的状态变化测试
+    it('数据更新时应该保持节点状态一致性', () => {
+      const node = new Node({
+        data: { id: 1, label: 'original', children: [] },
+        store: store
+      })
+
+      // 修改节点状态
+      node.checked = true
+      node.expanded = true
+
+      // 更新数据
+      node.setData({
+        id: 1,
+        label: 'updated',
+        children: [
+          { id: 2, label: 'new child' }
+        ]
+      })
+
+      // 验证状态是否保持
+      expect(node.checked).toBe(true)
+      expect(node.expanded).toBe(true)
+      expect(node.childNodes.length).toBe(1)
+      expect(node.childNodes[0].data.label).toBe('new child')
+    })
+
+    // 新增：循环引用检测
+    it('应该检测和处理循环引用', () => {
+      const data = { id: 1, label: 'test', children: [] }
+      const node = new Node({ data, store })
+
+      // 手动创建循环引用
+      const childData = { id: 2, label: 'child' }
+      const childNode = new Node({ data: childData, store, parent: node })
+
+      // 将父节点添加为子节点的子节点（创建循环）
+      expect(() => {
+        childNode.childNodes.push(node)
+      }).not.toThrow()
+
+      // 验证基本操作仍然正常
+      expect(node.childNodes.length).toBe(0)
+    })
   })
 
   describe('label getter', () => {
@@ -158,6 +260,10 @@ describe('Node - 数据处理', () => {
           children: 'children'
         }
       })
+    })
+
+    afterEach(() => {
+      store = null
     })
 
     it('应该返回正确的 label 值', () => {
@@ -195,6 +301,49 @@ describe('Node - 数据处理', () => {
 
       expect(node.label).toBeUndefined()
     })
+
+    // 新增：特殊字符和Unicode支持测试
+    it('应该支持特殊字符和Unicode标签', () => {
+      const specialLabels = [
+        '🌟 星星标签',
+        '标签 avec français',
+        'タグ日本語',
+        '태그한국어',
+        'العربية',
+        '',
+        '   ',
+        '\t标签\n',
+        '标签"包含引号"',
+        '标签\\包含斜杠\\'
+      ]
+
+      specialLabels.forEach((label, index) => {
+        const node = new Node({
+          data: { id: index + 1, label: label },
+          store: store
+        })
+
+        expect(node.label).toBe(label)
+      })
+    })
+
+    // 新增：动态label字段更新测试
+    it('动态更新label字段应该反映在getter中', () => {
+      const node = new Node({
+        data: { id: 1, label: 'original' },
+        store: store
+      })
+
+      expect(node.label).toBe('original')
+
+      // 更新label
+      node.data.label = 'updated'
+      expect(node.label).toBe('updated')
+
+      // 删除label字段
+      delete node.data.label
+      expect(node.label).toBeUndefined()
+    })
   })
 
   describe('key getter', () => {
@@ -209,6 +358,10 @@ describe('Node - 数据处理', () => {
           children: 'children'
         }
       })
+    })
+
+    afterEach(() => {
+      store = null
     })
 
     it('应该返回正确的 key 值', () => {
@@ -254,6 +407,79 @@ describe('Node - 数据处理', () => {
       })
 
       expect(node.key).toBe('custom123')
+    })
+
+    // 新增：特殊key值类型测试
+    it('应该处理各种特殊key值类型', () => {
+      const specialKeys = [
+        0,
+        -1,
+        Number.MAX_SAFE_INTEGER,
+        '',
+        '0',
+        'string-with-dashes',
+        'string_with_underscores',
+        'string.with.dots',
+        'string@with@symbols',
+        true,
+        false
+      ]
+
+      specialKeys.forEach((keyValue, index) => {
+        const node = new Node({
+          data: { id: keyValue, label: `test-${index}` },
+          store: store
+        })
+
+        expect(node.key).toBe(keyValue)
+      })
+    })
+
+    // 新增：空值和undefined处理测试
+    it('应该正确处理空值和undefined的key', () => {
+      const testCases = [
+        { data: { id: null }, expected: null },
+        { data: { id: undefined }, expected: undefined },
+        { data: {}, expected: undefined },
+        { data: { id: '' }, expected: '' }
+      ]
+
+      testCases.forEach((testCase) => {
+        const node = new Node({
+          data: testCase.data,
+          store: store
+        })
+
+        expect(node.key).toBe(testCase.expected)
+      })
+    })
+
+    // 新增：动态key更新测试
+    it('动态更新key字段应该反映在getter中', () => {
+      const node = new Node({
+        data: { id: 'original' },
+        store: store
+      })
+
+      expect(node.key).toBe('original')
+
+      // 更新key
+      node.data.id = 'updated'
+      expect(node.key).toBe('updated')
+
+      // 设置为null
+      node.data.id = null
+      expect(node.key).toBe(null)
+    })
+
+    // 新增：key字段不存在时的回退测试
+    it('key字段不存在时应该返回undefined', () => {
+      const node = new Node({
+        data: { name: 'test', label: 'Test Label' },
+        store: store
+      })
+
+      expect(node.key).toBeUndefined()
     })
   })
 })

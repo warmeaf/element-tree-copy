@@ -60,7 +60,7 @@
     <el-tree
       :data="treeData"
       :indent="32"
-      icon-class="el-icon-arrow-right"
+      icon-class="custom-arrow-right"
       default-expand-all
     />
   </div>
@@ -255,7 +255,7 @@ export default {
     },
     setCurrentByData() {
       const tree = this.$refs.highlightTree
-      const nodeData = this.treeDataWithId[1].children[0] // 二级 2-1
+      const nodeData = this.treeDataWithId[0].children[1].children[0] // 二级 2-1 (id: 5)
       tree.setCurrentNode(nodeData)
       this.getCurrentInfo()
     },
@@ -267,3 +267,40 @@ export default {
   },
 }
 </script>
+
+<style>
+/* 自定义箭头图标 */
+.custom-arrow-right {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  position: relative;
+  transition: transform 0.3s ease;
+  transform: rotate(45deg);
+}
+
+.custom-arrow-right::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-top: 2px solid #606266;
+  border-right: 2px solid #606266;
+}
+
+/* 展开状态下的箭头旋转 */
+.el-tree-node__expand-icon.expanded.custom-arrow-right {
+  transform: rotate(135deg);
+}
+
+/* 悬停效果 */
+.el-tree-node__expand-icon:hover.custom-arrow-right::before {
+  border-color: #409eff;
+}
+
+/* 叶子节点不显示箭头 */
+.el-tree-node__expand-icon.is-leaf.custom-arrow-right {
+  opacity: 0;
+}
+</style>

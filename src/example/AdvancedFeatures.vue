@@ -581,14 +581,14 @@ export default {
       this.$refs.filterTree?.filter('')
     },
 
-    filterNodeMethod(value, data, node) {
+    filterNodeMethod(value, _, node) {
       if (!value) return true
       const label = node.label
       return label.toLowerCase().includes(value.toLowerCase())
     },
 
     // 自定义渲染函数
-    renderContent(h, { node, data, store }) {
+    renderContent(h, { node, data }) {
       const iconClass =
         data.type === 'folder' ? 'el-icon-folder' : 'el-icon-document'
       return h('div', { class: 'custom-content' }, [

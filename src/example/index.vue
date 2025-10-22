@@ -32,6 +32,9 @@
           :logs="logs"
           @add-log="addLog"
         />
+
+        <!-- API Tab -->
+        <ApiFeatures v-if="activeTab === 4" />
       </div>
     </div>
   </div>
@@ -42,6 +45,7 @@ import BasicFeatures from './BasicFeatures.vue'
 import CheckboxFeatures from './CheckboxFeatures.vue'
 import AdvancedFeatures from './AdvancedFeatures.vue'
 import OperationFeatures from './OperationFeatures.vue'
+import ApiFeatures from './ApiFeatures.vue'
 
 export default {
   name: 'ExampleIndex',
@@ -50,6 +54,7 @@ export default {
     CheckboxFeatures,
     AdvancedFeatures,
     OperationFeatures,
+    ApiFeatures,
   },
   data() {
     return {
@@ -60,6 +65,7 @@ export default {
         { title: '复选框功能' },
         { title: '高级功能' },
         { title: '操作功能' },
+        { title: 'API 文档' },
       ],
 
       // 事件日志
