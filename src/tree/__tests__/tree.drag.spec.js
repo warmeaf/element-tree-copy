@@ -113,39 +113,39 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
   describe('拖拽基础配置', () => {
     it('应该支持 draggable 属性', () => {
-      const wrapper = mount(Tree, {
+      const _wrapper = mount(Tree, {
         propsData: {
           draggable: true,
         },
       })
-      expect(wrapper.props('draggable')).toBe(true)
+      expect(_wrapper.props('draggable')).toBe(true)
     })
 
     it('draggable 默认应该为 false', () => {
-      const wrapper = mount(Tree)
-      expect(wrapper.props('draggable')).toBe(false)
+      const _wrapper = mount(Tree)
+      expect(_wrapper.props('draggable')).toBe(false)
     })
 
     it('应该支持 allowDrag 函数配置', () => {
       const allowDrag = vi.fn()
-      const wrapper = mount(Tree, {
+      const _wrapper = mount(Tree, {
         propsData: {
           draggable: true,
           allowDrag,
         },
       })
-      expect(wrapper.props('allowDrag')).toBe(allowDrag)
+      expect(_wrapper.props('allowDrag')).toBe(allowDrag)
     })
 
     it('应该支持 allowDrop 函数配置', () => {
       const allowDrop = vi.fn()
-      const wrapper = mount(Tree, {
+      const _wrapper = mount(Tree, {
         propsData: {
           draggable: true,
           allowDrop,
         },
       })
-      expect(wrapper.props('allowDrop')).toBe(allowDrop)
+      expect(_wrapper.props('allowDrop')).toBe(allowDrop)
     })
   })
 
@@ -162,8 +162,8 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
   describe('拖拽状态管理', () => {
     it('应该初始化拖拽状态', () => {
-      const wrapper = createTreeWrapper([])
-      const dragState = wrapper.vm.dragState
+      const _wrapper = createTreeWrapper([])
+      const dragState = _wrapper.vm.dragState
 
       expect(dragState.showDropIndicator).toBe(false)
       expect(dragState.draggingNode).toBe(null)
@@ -174,61 +174,61 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
     it('拖拽时应该添加 is-dragging 类', async () => {
       const data = [{ label: '节点1' }]
-      const wrapper = createTreeWrapper(data)
+      const _wrapper = createTreeWrapper(data)
 
       // 模拟拖拽状态
-      wrapper.vm.dragState.draggingNode = { node: { data: data[0] } }
-      await wrapper.vm.$nextTick()
+      _wrapper.vm.dragState.draggingNode = { node: { data: data[0] } }
+      await _wrapper.vm.$nextTick()
 
-      expect(wrapper.classes()).toContain('is-dragging')
+      expect(_wrapper.classes()).toContain('is-dragging')
     })
 
     it('不允许放置时应该添加 is-drop-not-allow 类', async () => {
       const data = [{ label: '节点1' }]
-      const wrapper = createTreeWrapper(data)
+      const _wrapper = createTreeWrapper(data)
 
       // 模拟不允许放置状态
-      wrapper.vm.dragState.allowDrop = false
-      await wrapper.vm.$nextTick()
+      _wrapper.vm.dragState.allowDrop = false
+      await _wrapper.vm.$nextTick()
 
-      expect(wrapper.classes()).toContain('is-drop-not-allow')
+      expect(_wrapper.classes()).toContain('is-drop-not-allow')
     })
 
     it('内部放置时应该添加 is-drop-inner 类', async () => {
       const data = [{ label: '节点1' }]
-      const wrapper = createTreeWrapper(data)
+      const _wrapper = createTreeWrapper(data)
 
       // 模拟内部放置状态
-      wrapper.vm.dragState.dropType = 'inner'
-      await wrapper.vm.$nextTick()
+      _wrapper.vm.dragState.dropType = 'inner'
+      await _wrapper.vm.$nextTick()
 
-      expect(wrapper.classes()).toContain('is-drop-inner')
+      expect(_wrapper.classes()).toContain('is-drop-inner')
     })
   })
 
   describe('拖拽指示器', () => {
     it('应该渲染拖拽指示器元素', () => {
-      const wrapper = createTreeWrapper([])
-      const dropIndicator = wrapper.find('.el-tree__drop-indicator')
+      const _wrapper = createTreeWrapper([])
+      const dropIndicator = _wrapper.find('.el-tree__drop-indicator')
 
       expect(dropIndicator.exists()).toBe(true)
     })
 
     it('默认情况下拖拽指示器应该隐藏', () => {
-      const wrapper = createTreeWrapper([])
-      const dropIndicator = wrapper.find('.el-tree__drop-indicator')
+      const _wrapper = createTreeWrapper([])
+      const dropIndicator = _wrapper.find('.el-tree__drop-indicator')
 
       expect(dropIndicator.isVisible()).toBe(false)
     })
 
     it('显示拖拽指示器时应该可见', async () => {
-      const wrapper = createTreeWrapper([])
+      const _wrapper = createTreeWrapper([])
 
       // 设置显示指示器
-      wrapper.vm.dragState.showDropIndicator = true
-      await wrapper.vm.$nextTick()
+      _wrapper.vm.dragState.showDropIndicator = true
+      await _wrapper.vm.$nextTick()
 
-      const dropIndicator = wrapper.find('.el-tree__drop-indicator')
+      const dropIndicator = _wrapper.find('.el-tree__drop-indicator')
       expect(dropIndicator.isVisible()).toBe(true)
     })
   })
@@ -236,7 +236,7 @@ describe('Tree 容器组件 - 拖拽功能', () => {
   describe('拖拽开始事件', () => {
     it('应该处理 tree-node-drag-start 事件', async () => {
       const data = [{ label: '节点1' }]
-      const wrapper = createTreeWrapper(data)
+      const _wrapper = createTreeWrapper(data)
 
       const mockEvent = {
         dataTransfer: mockDataTransfer,
@@ -247,17 +247,17 @@ describe('Tree 容器组件 - 拖拽功能', () => {
       }
 
       // 触发拖拽开始事件
-      wrapper.vm.$emit('tree-node-drag-start', mockEvent, mockTreeNode)
-      await wrapper.vm.$nextTick()
+      _wrapper.vm.$emit('tree-node-drag-start', mockEvent, mockTreeNode)
+      await _wrapper.vm.$nextTick()
 
       expect(mockDataTransfer.effectAllowed).toBe('move')
-      expect(wrapper.vm.dragState.draggingNode).toBe(mockTreeNode)
+      expect(_wrapper.vm.dragState.draggingNode).toBe(mockTreeNode)
     })
 
     it('allowDrag 返回 false 时应该阻止拖拽', async () => {
       const data = [{ label: '节点1' }]
       const allowDrag = vi.fn().mockReturnValue(false)
-      const wrapper = createTreeWrapper(data, { allowDrag })
+      const _wrapper = createTreeWrapper(data, { allowDrag })
 
       const mockEvent = {
         dataTransfer: mockDataTransfer,
@@ -268,8 +268,8 @@ describe('Tree 容器组件 - 拖拽功能', () => {
       }
 
       // 触发拖拽开始事件
-      wrapper.vm.$emit('tree-node-drag-start', mockEvent, mockTreeNode)
-      await wrapper.vm.$nextTick()
+      _wrapper.vm.$emit('tree-node-drag-start', mockEvent, mockTreeNode)
+      await _wrapper.vm.$nextTick()
 
       expect(mockEvent.preventDefault).toHaveBeenCalled()
       expect(allowDrag).toHaveBeenCalledWith(mockTreeNode.node)
@@ -277,7 +277,7 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
     it('应该触发 node-drag-start 事件', async () => {
       const data = [{ label: '节点1' }]
-      const wrapper = createTreeWrapper(data)
+      const _wrapper = createTreeWrapper(data)
 
       const mockEvent = {
         dataTransfer: mockDataTransfer,
@@ -289,13 +289,13 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
       // 监听事件
       const emittedEvents = []
-      wrapper.vm.$on('node-drag-start', (...args) => {
+      _wrapper.vm.$on('node-drag-start', (...args) => {
         emittedEvents.push(args)
       })
 
       // 触发拖拽开始事件
-      wrapper.vm.$emit('tree-node-drag-start', mockEvent, mockTreeNode)
-      await wrapper.vm.$nextTick()
+      _wrapper.vm.$emit('tree-node-drag-start', mockEvent, mockTreeNode)
+      await _wrapper.vm.$nextTick()
 
       expect(emittedEvents).toHaveLength(1)
       expect(emittedEvents[0]).toEqual([mockTreeNode.node, mockEvent])
@@ -308,39 +308,39 @@ describe('Tree 容器组件 - 拖拽功能', () => {
         { id: 1, label: '节点1' },
         { id: 2, label: '节点2' },
       ]
-      const wrapper = createTreeWrapper(data, { nodeKey: 'id' })
-      await wrapper.vm.$nextTick()
+      const _wrapper = createTreeWrapper(data, { nodeKey: 'id' })
+      await _wrapper.vm.$nextTick()
 
       // 直接测试拖拽状态的初始值
-      expect(wrapper.vm.dragState.dropNode).toBe(null)
-      expect(wrapper.vm.dragState.showDropIndicator).toBe(false)
-      expect(wrapper.vm.dragState.dropType).toBe(null)
-      expect(wrapper.vm.dragState.allowDrop).toBe(true)
+      expect(_wrapper.vm.dragState.dropNode).toBe(null)
+      expect(_wrapper.vm.dragState.showDropIndicator).toBe(false)
+      expect(_wrapper.vm.dragState.dropType).toBe(null)
+      expect(_wrapper.vm.dragState.allowDrop).toBe(true)
     })
 
     it('allowDrop 函数应该被正确配置', async () => {
       const data = [{ label: '节点1' }, { label: '节点2' }]
       const allowDrop = vi.fn().mockReturnValue(true)
 
-      const wrapper = createTreeWrapper(data, { allowDrop })
-      await wrapper.vm.$nextTick()
+      const _wrapper = createTreeWrapper(data, { allowDrop })
+      await _wrapper.vm.$nextTick()
 
       // 验证 allowDrop 函数已被正确配置
-      expect(wrapper.vm.allowDrop).toBe(allowDrop)
+      expect(_wrapper.vm.allowDrop).toBe(allowDrop)
     })
 
     it('应该正确配置拖拽相关的事件监听器', async () => {
       const data = [{ label: '节点1' }, { label: '节点2' }]
-      const wrapper = createTreeWrapper(data)
-      await wrapper.vm.$nextTick()
+      const _wrapper = createTreeWrapper(data)
+      await _wrapper.vm.$nextTick()
 
       // 验证组件内部有正确的事件监听配置
-      expect(wrapper.vm.dragState).toBeDefined()
-      expect(wrapper.vm.dragState).toHaveProperty('showDropIndicator')
-      expect(wrapper.vm.dragState).toHaveProperty('draggingNode')
-      expect(wrapper.vm.dragState).toHaveProperty('dropNode')
-      expect(wrapper.vm.dragState).toHaveProperty('allowDrop')
-      expect(wrapper.vm.dragState).toHaveProperty('dropType')
+      expect(_wrapper.vm.dragState).toBeDefined()
+      expect(_wrapper.vm.dragState).toHaveProperty('showDropIndicator')
+      expect(_wrapper.vm.dragState).toHaveProperty('draggingNode')
+      expect(_wrapper.vm.dragState).toHaveProperty('dropNode')
+      expect(_wrapper.vm.dragState).toHaveProperty('allowDrop')
+      expect(_wrapper.vm.dragState).toHaveProperty('dropType')
     })
   })
 
@@ -358,17 +358,17 @@ describe('Tree 容器组件 - 拖拽功能', () => {
     })
 
     it('应该处理基础的 tree-node-drag-end 事件', async () => {
-      const wrapper = createTreeWrapper(basicData)
+      const _wrapper = createTreeWrapper(basicData)
 
       // 设置拖拽状态
-      wrapper.vm.dragState.draggingNode = draggingNode
-      wrapper.vm.dragState.dropNode = dropNode
-      wrapper.vm.dragState.dropType = 'before'
-      wrapper.vm.store.registerNode = vi.fn()
+      _wrapper.vm.dragState.draggingNode = draggingNode
+      _wrapper.vm.dragState.dropNode = dropNode
+      _wrapper.vm.dragState.dropType = 'before'
+      _wrapper.vm.store.registerNode = vi.fn()
 
       // 触发拖拽结束事件
-      wrapper.vm.$emit('tree-node-drag-end', mockEvent)
-      await wrapper.vm.$nextTick()
+      _wrapper.vm.$emit('tree-node-drag-end', mockEvent)
+      await _wrapper.vm.$nextTick()
 
       expect(mockEvent.preventDefault).toHaveBeenCalled()
       expect(mockDataTransfer.dropEffect).toBe('move')
@@ -376,22 +376,22 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
     describe('不同 dropType 的插入行为', () => {
       it('dropType 为 before 时应该在目标节点前插入', async () => {
-        const wrapper = createTreeWrapper(basicData)
+        const _wrapper = createTreeWrapper(basicData)
 
         // 确保parent对象存在并有正确的方法
         dropNode.node.parent = dropNode.node.parent || {}
         dropNode.node.parent.insertBefore = vi.fn()
 
-        wrapper.vm.dragState.draggingNode = draggingNode
-        wrapper.vm.dragState.dropNode = dropNode
-        wrapper.vm.dragState.dropType = 'before'
-        wrapper.vm.store.registerNode = vi.fn()
+        _wrapper.vm.dragState.draggingNode = draggingNode
+        _wrapper.vm.dragState.dropNode = dropNode
+        _wrapper.vm.dragState.dropType = 'before'
+        _wrapper.vm.store.registerNode = vi.fn()
 
         // 模拟完整的拖拽结束过程，而不是仅仅触发事件
         try {
-          wrapper.vm.$emit('tree-node-drag-end', mockEvent)
-          await wrapper.vm.$nextTick()
-        } catch (error) {
+          _wrapper.vm.$emit('tree-node-drag-end', mockEvent)
+          await _wrapper.vm.$nextTick()
+        } catch {
           // 忽略组件内部实现的错误，只测试我们的Mock设置
         }
 
@@ -400,104 +400,104 @@ describe('Tree 容器组件 - 拖拽功能', () => {
           expect(dropNode.node.parent.insertBefore).toHaveBeenCalled()
         } else {
           // 至少验证dropType设置正确
-          expect(wrapper.vm.dragState.dropType).toBe('before')
+          expect(_wrapper.vm.dragState.dropType).toBe('before')
         }
       })
 
       it('dropType 为 after 时应该在目标节点后插入', async () => {
-        const wrapper = createTreeWrapper(basicData)
+        const _wrapper = createTreeWrapper(basicData)
 
         dropNode.node.parent = dropNode.node.parent || {}
         dropNode.node.parent.insertAfter = vi.fn()
 
-        wrapper.vm.dragState.draggingNode = draggingNode
-        wrapper.vm.dragState.dropNode = dropNode
-        wrapper.vm.dragState.dropType = 'after'
-        wrapper.vm.store.registerNode = vi.fn()
+        _wrapper.vm.dragState.draggingNode = draggingNode
+        _wrapper.vm.dragState.dropNode = dropNode
+        _wrapper.vm.dragState.dropType = 'after'
+        _wrapper.vm.store.registerNode = vi.fn()
 
         try {
-          wrapper.vm.$emit('tree-node-drag-end', mockEvent)
-          await wrapper.vm.$nextTick()
-        } catch (error) {
+          _wrapper.vm.$emit('tree-node-drag-end', mockEvent)
+          await _wrapper.vm.$nextTick()
+        } catch {
           // 忽略组件内部实现的错误
         }
 
         if (dropNode.node.parent.insertAfter.mock.calls.length > 0) {
           expect(dropNode.node.parent.insertAfter).toHaveBeenCalled()
         } else {
-          expect(wrapper.vm.dragState.dropType).toBe('after')
+          expect(_wrapper.vm.dragState.dropType).toBe('after')
         }
       })
 
       it('dropType 为 inner 时应该作为子节点插入', async () => {
-        const wrapper = createTreeWrapper(basicData)
+        const _wrapper = createTreeWrapper(basicData)
 
-        wrapper.vm.dragState.draggingNode = draggingNode
-        wrapper.vm.dragState.dropNode = dropNode
-        wrapper.vm.dragState.dropType = 'inner'
-        wrapper.vm.store.registerNode = vi.fn()
+        _wrapper.vm.dragState.draggingNode = draggingNode
+        _wrapper.vm.dragState.dropNode = dropNode
+        _wrapper.vm.dragState.dropType = 'inner'
+        _wrapper.vm.store.registerNode = vi.fn()
 
         try {
-          wrapper.vm.$emit('tree-node-drag-end', mockEvent)
-          await wrapper.vm.$nextTick()
-        } catch (error) {
+          _wrapper.vm.$emit('tree-node-drag-end', mockEvent)
+          await _wrapper.vm.$nextTick()
+        } catch {
           // 忽略组件内部实现的错误
         }
 
-        expect(wrapper.vm.dragState.dropType).toBe('inner')
+        expect(_wrapper.vm.dragState.dropType).toBe('inner')
       })
     })
 
     describe('事件触发和状态重置', () => {
       it('应该验证事件监听器设置正确', async () => {
-        const wrapper = createTreeWrapper(basicData)
+        const _wrapper = createTreeWrapper(basicData)
 
-        wrapper.vm.dragState.draggingNode = draggingNode
-        wrapper.vm.dragState.dropNode = dropNode
-        wrapper.vm.dragState.dropType = 'before'
-        wrapper.vm.store.registerNode = vi.fn()
+        _wrapper.vm.dragState.draggingNode = draggingNode
+        _wrapper.vm.dragState.dropNode = dropNode
+        _wrapper.vm.dragState.dropType = 'before'
+        _wrapper.vm.store.registerNode = vi.fn()
 
         // 测试组件是否声明了相关事件
         expect(Tree.emits).toContain('node-drag-end')
         expect(Tree.emits).toContain('node-drop')
 
         // 验证拖拽状态设置
-        expect(wrapper.vm.dragState.dropType).toBe('before')
+        expect(_wrapper.vm.dragState.dropType).toBe('before')
       })
 
       it('dropType 为 none 时不应该触发 node-drop 事件', async () => {
-        const wrapper = createTreeWrapper(basicData)
+        const _wrapper = createTreeWrapper(basicData)
 
-        wrapper.vm.dragState.draggingNode = draggingNode
-        wrapper.vm.dragState.dropNode = dropNode
-        wrapper.vm.dragState.dropType = 'none'
+        _wrapper.vm.dragState.draggingNode = draggingNode
+        _wrapper.vm.dragState.dropNode = dropNode
+        _wrapper.vm.dragState.dropType = 'none'
 
         // 监听事件
         const dropEvents = []
-        wrapper.vm.$on('node-drop', (...args) => dropEvents.push(args))
+        _wrapper.vm.$on('node-drop', (...args) => dropEvents.push(args))
 
-        wrapper.vm.$emit('tree-node-drag-end', mockEvent)
-        await wrapper.vm.$nextTick()
+        _wrapper.vm.$emit('tree-node-drag-end', mockEvent)
+        await _wrapper.vm.$nextTick()
 
         expect(dropEvents).toHaveLength(0)
       })
 
       it('拖拽结束后应该重置拖拽状态', async () => {
-        const wrapper = createTreeWrapper(basicData)
+        const _wrapper = createTreeWrapper(basicData)
 
         // 设置拖拽状态
-        wrapper.vm.dragState.draggingNode = draggingNode
-        wrapper.vm.dragState.dropNode = dropNode
-        wrapper.vm.dragState.showDropIndicator = true
-        wrapper.vm.dragState.allowDrop = false
+        _wrapper.vm.dragState.draggingNode = draggingNode
+        _wrapper.vm.dragState.dropNode = dropNode
+        _wrapper.vm.dragState.showDropIndicator = true
+        _wrapper.vm.dragState.allowDrop = false
 
-        wrapper.vm.$emit('tree-node-drag-end', mockEvent)
-        await wrapper.vm.$nextTick()
+        _wrapper.vm.$emit('tree-node-drag-end', mockEvent)
+        await _wrapper.vm.$nextTick()
 
-        expect(wrapper.vm.dragState.showDropIndicator).toBe(false)
-        expect(wrapper.vm.dragState.draggingNode).toBe(null)
-        expect(wrapper.vm.dragState.dropNode).toBe(null)
-        expect(wrapper.vm.dragState.allowDrop).toBe(true)
+        expect(_wrapper.vm.dragState.showDropIndicator).toBe(false)
+        expect(_wrapper.vm.dragState.draggingNode).toBe(null)
+        expect(_wrapper.vm.dragState.dropNode).toBe(null)
+        expect(_wrapper.vm.dragState.allowDrop).toBe(true)
       })
     })
   })
@@ -511,7 +511,7 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
     it('不能拖拽到自身', () => {
       const data = [{ id: 1, label: '节点1' }]
-      const wrapper = createTreeWrapper(data, { allowDrop: mockAllowDrop })
+      const _wrapper = createTreeWrapper(data, { allowDrop: mockAllowDrop })
 
       const draggingNode = { node: { data: data[0] } }
       const targetNode = { node: { data: data[0] } } // 同一个节点
@@ -528,7 +528,7 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
     it('不能拖拽到自己的子节点', () => {
       const data = createTestTreeData('complex')
-      const wrapper = createTreeWrapper(data, { allowDrop: mockAllowDrop })
+      const _wrapper = createTreeWrapper(data, { allowDrop: mockAllowDrop })
 
       const parentNode = { node: { data: data[0] } } // 父节点1
       const childNode = { node: { data: data[0].children[0] } } // 子节点1-1
@@ -548,7 +548,7 @@ describe('Tree 容器组件 - 拖拽功能', () => {
         { id: 2, label: '节点2' },
         { id: 3, label: '节点3' },
       ]
-      const wrapper = createTreeWrapper(data, { allowDrop: mockAllowDrop })
+      const _wrapper = createTreeWrapper(data, { allowDrop: mockAllowDrop })
 
       const draggingNode = { node: { data: data[0] } } // 节点1
       const targetNode = { node: { data: data[1] } } // 节点2（兄弟节点）
@@ -562,13 +562,13 @@ describe('Tree 容器组件 - 拖拽功能', () => {
       const data = createTestTreeData('basic')
       mockAllowDrop.mockReturnValue(true)
 
-      const wrapper = createTreeWrapper(data, { allowDrop: mockAllowDrop })
+      const _wrapper = createTreeWrapper(data, { allowDrop: mockAllowDrop })
 
       const draggingNode = { node: { data: data[0] } }
       const targetNode = { node: { data: data[1] } }
 
       // 模拟拖拽检查
-      wrapper.vm.handleDropCheck?.(draggingNode, targetNode, 'before')
+      _wrapper.vm.handleDropCheck?.(draggingNode, targetNode, 'before')
 
       // 在实际组件中，allowDrop 应该被调用
       expect(mockAllowDrop).toBeDefined()
@@ -578,7 +578,7 @@ describe('Tree 容器组件 - 拖拽功能', () => {
       const data = createTestTreeData('basic')
       mockAllowDrop.mockReturnValue(false)
 
-      const wrapper = createTreeWrapper(data, { allowDrop: mockAllowDrop })
+      const _wrapper = createTreeWrapper(data, { allowDrop: mockAllowDrop })
 
       const draggingNode = { node: { data: data[0] } }
       const targetNode = { node: { data: data[1] } }
@@ -592,7 +592,7 @@ describe('Tree 容器组件 - 拖拽功能', () => {
       const data = createTestTreeData('basic')
       const allowDrag = vi.fn().mockReturnValue(true)
 
-      const wrapper = createTreeWrapper(data, { allowDrag })
+      const _wrapper = createTreeWrapper(data, { allowDrag })
 
       const draggingNode = { node: { data: data[0] } }
 
@@ -606,7 +606,7 @@ describe('Tree 容器组件 - 拖拽功能', () => {
       const data = createTestTreeData('basic')
       const allowDrag = vi.fn().mockReturnValue(false)
 
-      const wrapper = createTreeWrapper(data, { allowDrag })
+      const _wrapper = createTreeWrapper(data, { allowDrag })
 
       const draggingNode = { node: { data: data[0] } }
 
@@ -618,15 +618,15 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
   describe('拖拽边界情况和异常处理', () => {
     it('应该处理空数据的拖拽', () => {
-      const wrapper = createTreeWrapper([])
+      const _wrapper = createTreeWrapper([])
 
-      expect(wrapper.vm.dragState).toBeDefined()
-      expect(wrapper.vm.dragState.draggingNode).toBe(null)
-      expect(wrapper.vm.dragState.dropNode).toBe(null)
+      expect(_wrapper.vm.dragState).toBeDefined()
+      expect(_wrapper.vm.dragState.draggingNode).toBe(null)
+      expect(_wrapper.vm.dragState.dropNode).toBe(null)
     })
 
     it('应该处理无效的拖拽数据', () => {
-      const wrapper = createTreeWrapper([{ id: 1, label: '测试' }])
+      const _wrapper = createTreeWrapper([{ id: 1, label: '测试' }])
 
       // 模拟处理无效拖拽数据
       const invalidDragNode = { node: { data: null } }
@@ -635,24 +635,24 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
     it('应该处理拖拽过程中组件销毁的情况', async () => {
       const data = createTestTreeData('basic')
-      const wrapper = createTreeWrapper(data)
+      const _wrapper = createTreeWrapper(data)
 
       // 设置拖拽状态
-      wrapper.vm.dragState.draggingNode = { node: { data: data[0] } }
+      _wrapper.vm.dragState.draggingNode = { node: { data: data[0] } }
 
       // 销毁组件（Vue 2 使用 destroy 方法）
-      wrapper.destroy()
+      _wrapper.destroy()
 
       // 验证没有内存泄漏或错误
-      expect(wrapper.exists()).toBe(false)
+      expect(_wrapper.exists()).toBe(false)
     })
 
     it('应该处理嵌套层级的拖拽', () => {
       const data = createTestTreeData('complex')
-      const wrapper = createTreeWrapper(data)
+      const _wrapper = createTreeWrapper(data)
 
       const rootNode = { node: { data: data[0] } }
-      const leafNode = { node: { data: data[0].children[0] } }
+      const _leafNode = { node: { data: data[0].children[0] } }
       const grandchildNode = {
         node: { data: data[2].children[1].children[0] },
       }
@@ -665,7 +665,7 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
     it('应该处理拖拽过程中的意外错误', () => {
       const data = createTestTreeData('basic')
-      const wrapper = createTreeWrapper(data)
+      const _wrapper = createTreeWrapper(data)
 
       // 模拟错误处理
       const mockError = new Error('拖拽错误')
@@ -687,8 +687,8 @@ describe('Tree 容器组件 - 拖拽功能', () => {
       const largeData = createTestTreeData('large')
       const startTime = performance.now()
 
-      const wrapper = createTreeWrapper(largeData)
-      await wrapper.vm.$nextTick()
+      const _wrapper = createTreeWrapper(largeData)
+      await _wrapper.vm.$nextTick()
 
       const endTime = performance.now()
       const renderTime = endTime - startTime
@@ -725,7 +725,7 @@ describe('Tree 容器组件 - 拖拽功能', () => {
         },
       ]
 
-      const wrapper = createTreeWrapper(deepNestedData)
+      const _wrapper = createTreeWrapper(deepNestedData)
 
       // 验证深层嵌套结构
       const rootNode = deepNestedData[0]
@@ -737,22 +737,22 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
     it('拖拽过程中应该保持良好的性能', () => {
       const largeData = createTestTreeData('large')
-      const wrapper = createTreeWrapper(largeData)
+      const _wrapper = createTreeWrapper(largeData)
 
       const startTime = performance.now()
 
       // 模拟多次拖拽操作
       for (let i = 0; i < 10; i++) {
-        wrapper.vm.dragState.draggingNode = { node: { data: largeData[i] } }
-        wrapper.vm.dragState.dropNode = {
+        _wrapper.vm.dragState.draggingNode = { node: { data: largeData[i] } }
+        _wrapper.vm.dragState.dropNode = {
           node: { data: largeData[i + 1] || largeData[0] },
         }
-        wrapper.vm.dragState.showDropIndicator = true
+        _wrapper.vm.dragState.showDropIndicator = true
 
         // 重置状态
-        wrapper.vm.dragState.showDropIndicator = false
-        wrapper.vm.dragState.draggingNode = null
-        wrapper.vm.dragState.dropNode = null
+        _wrapper.vm.dragState.showDropIndicator = false
+        _wrapper.vm.dragState.draggingNode = null
+        _wrapper.vm.dragState.dropNode = null
       }
 
       const endTime = performance.now()
@@ -764,22 +764,22 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
     it('应该能处理频繁的拖拽状态切换', () => {
       const data = createTestTreeData('basic')
-      const wrapper = createTreeWrapper(data)
+      const _wrapper = createTreeWrapper(data)
 
       // 模拟频繁的拖拽状态切换
       const states = []
       for (let i = 0; i < 100; i++) {
         const isDragging = i % 2 === 0
-        wrapper.vm.dragState.draggingNode = isDragging
+        _wrapper.vm.dragState.draggingNode = isDragging
           ? { node: { data: data[0] } }
           : null
-        wrapper.vm.dragState.showDropIndicator = isDragging
-        wrapper.vm.dragState.allowDrop = !isDragging
+        _wrapper.vm.dragState.showDropIndicator = isDragging
+        _wrapper.vm.dragState.allowDrop = !isDragging
 
         states.push({
-          draggingNode: wrapper.vm.dragState.draggingNode,
-          showDropIndicator: wrapper.vm.dragState.showDropIndicator,
-          allowDrop: wrapper.vm.dragState.allowDrop,
+          draggingNode: _wrapper.vm.dragState.draggingNode,
+          showDropIndicator: _wrapper.vm.dragState.showDropIndicator,
+          allowDrop: _wrapper.vm.dragState.allowDrop,
         })
       }
 
@@ -792,20 +792,20 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
     it('拖拽指示器在大数据量下应该正常工作', async () => {
       const largeData = createTestTreeData('large')
-      const wrapper = createTreeWrapper(largeData)
+      const _wrapper = createTreeWrapper(largeData)
 
       const startTime = performance.now()
 
       // 显示拖拽指示器
-      wrapper.vm.dragState.showDropIndicator = true
-      wrapper.vm.dragState.dropType = 'before'
-      await wrapper.vm.$nextTick()
+      _wrapper.vm.dragState.showDropIndicator = true
+      _wrapper.vm.dragState.dropType = 'before'
+      await _wrapper.vm.$nextTick()
 
-      const dropIndicator = wrapper.find('.el-tree__drop-indicator')
+      const dropIndicator = _wrapper.find('.el-tree__drop-indicator')
 
       // 隐藏拖拽指示器
-      wrapper.vm.dragState.showDropIndicator = false
-      await wrapper.vm.$nextTick()
+      _wrapper.vm.dragState.showDropIndicator = false
+      await _wrapper.vm.$nextTick()
 
       const endTime = performance.now()
       const indicatorTime = endTime - startTime
@@ -819,7 +819,7 @@ describe('Tree 容器组件 - 拖拽功能', () => {
   describe('拖拽交互体验测试', () => {
     it('拖拽开始时应该设置正确的拖拽效果', () => {
       const data = createTestTreeData('basic')
-      const wrapper = createTreeWrapper(data)
+      const _wrapper = createTreeWrapper(data)
 
       const mockEvent = {
         dataTransfer: mockDataTransfer,
@@ -834,43 +834,43 @@ describe('Tree 容器组件 - 拖拽功能', () => {
 
     it('拖拽过程中应该正确显示视觉反馈', async () => {
       const data = createTestTreeData('complex')
-      const wrapper = createTreeWrapper(data)
+      const _wrapper = createTreeWrapper(data)
 
       // 设置拖拽状态
-      wrapper.vm.dragState.draggingNode = { node: { data: data[0] } }
-      wrapper.vm.dragState.dropNode = { node: { data: data[1] } }
-      wrapper.vm.dragState.allowDrop = false
-      await wrapper.vm.$nextTick()
+      _wrapper.vm.dragState.draggingNode = { node: { data: data[0] } }
+      _wrapper.vm.dragState.dropNode = { node: { data: data[1] } }
+      _wrapper.vm.dragState.allowDrop = false
+      await _wrapper.vm.$nextTick()
 
       // 验证视觉反馈类
-      expect(wrapper.classes()).toContain('is-dragging')
-      expect(wrapper.classes()).toContain('is-drop-not-allow')
+      expect(_wrapper.classes()).toContain('is-dragging')
+      expect(_wrapper.classes()).toContain('is-drop-not-allow')
     })
 
     it('拖拽结束后应该清除所有视觉反馈', async () => {
       const data = createTestTreeData('basic')
-      const wrapper = createTreeWrapper(data)
+      const _wrapper = createTreeWrapper(data)
 
       // 设置拖拽状态
-      wrapper.vm.dragState.draggingNode = { node: { data: data[0] } }
-      wrapper.vm.dragState.showDropIndicator = true
-      wrapper.vm.dragState.dropType = 'inner'
-      await wrapper.vm.$nextTick()
+      _wrapper.vm.dragState.draggingNode = { node: { data: data[0] } }
+      _wrapper.vm.dragState.showDropIndicator = true
+      _wrapper.vm.dragState.dropType = 'inner'
+      await _wrapper.vm.$nextTick()
 
       // 重置拖拽状态
-      wrapper.vm.dragState.draggingNode = null
-      wrapper.vm.dragState.showDropIndicator = false
-      wrapper.vm.dragState.dropType = null
-      await wrapper.vm.$nextTick()
+      _wrapper.vm.dragState.draggingNode = null
+      _wrapper.vm.dragState.showDropIndicator = false
+      _wrapper.vm.dragState.dropType = null
+      await _wrapper.vm.$nextTick()
 
       // 验证视觉反馈被清除
-      expect(wrapper.classes()).not.toContain('is-dragging')
-      expect(wrapper.classes()).not.toContain('is-drop-inner')
+      expect(_wrapper.classes()).not.toContain('is-dragging')
+      expect(_wrapper.classes()).not.toContain('is-drop-inner')
     })
 
     it('应该支持拖拽图片设置', () => {
       const data = createTestTreeData('basic')
-      const wrapper = createTreeWrapper(data)
+      const _wrapper = createTreeWrapper(data)
 
       const mockEvent = {
         dataTransfer: mockDataTransfer,
@@ -881,7 +881,7 @@ describe('Tree 容器组件 - 拖拽功能', () => {
       }
 
       // 模拟拖拽开始时设置拖拽图片
-      wrapper.vm.handleDragStart?.(mockEvent, { node: { data: data[0] } })
+      _wrapper.vm.handleDragStart?.(mockEvent, { node: { data: data[0] } })
 
       // 在实际组件中，应该设置拖拽图片
       expect(mockDataTransfer.setDragImage).toBeDefined()

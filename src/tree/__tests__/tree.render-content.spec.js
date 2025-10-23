@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import Tree from '../src/tree.vue'
 
 describe('Tree 组件 - renderContent 自定义渲染', () => {
@@ -38,7 +38,7 @@ describe('Tree 组件 - renderContent 自定义渲染', () => {
 
   describe('基础 renderContent 功能', () => {
     it('应该能够使用 renderContent 自定义节点渲染', async () => {
-      const renderContent = vi.fn((h, { node, data }) => {
+      const renderContent = vi.fn((h, { _node, data }) => {
         return h('span', {
           class: 'custom-node'
         }, [
@@ -80,7 +80,7 @@ describe('Tree 组件 - renderContent 自定义渲染', () => {
     })
 
     it('renderContent 应该接收正确的参数', async () => {
-      const renderContent = vi.fn((h, { node, data, store }) => {
+      const renderContent = vi.fn((h, { _node, data, _store }) => {
         return h('span', data.label)
       })
 
@@ -130,7 +130,7 @@ describe('Tree 组件 - renderContent 自定义渲染', () => {
 
     it('应该能够在 renderContent 中访问树组件实例', async () => {
       let treeInstance = null
-      const renderContent = vi.fn((h, { _self, node, data }) => {
+      const renderContent = vi.fn((h, { _self, _node, data }) => {
         treeInstance = _self
         return h('span', data.label)
       })
@@ -160,7 +160,7 @@ describe('Tree 组件 - renderContent 自定义渲染', () => {
 
   describe('复杂 renderContent 场景', () => {
     it('应该能够渲染包含多个元素的复杂内容', async () => {
-      const renderContent = (h, { node, data }) => {
+      const renderContent = (h, { _node, data }) => {
         return h('div', { class: 'complex-node' }, [
           h('img', {
             attrs: {
@@ -238,7 +238,7 @@ describe('Tree 组件 - renderContent 自定义渲染', () => {
       const onEdit = vi.fn()
       const onDelete = vi.fn()
 
-      const renderContent = (h, { node, data }) => {
+      const renderContent = (h, { _node, data }) => {
         return h('div', { class: 'interactive-node' }, [
           h('span', { class: 'node-label' }, data.label),
           h('button', {
@@ -406,8 +406,8 @@ describe('Tree 组件 - renderContent 自定义渲染', () => {
     })
 
     it('应该与拖拽功能正常配合', async () => {
-      const renderContent = (h, { node, data }) => {
-        return h('div', { 
+      const renderContent = (h, { _node, data }) => {
+        return h('div', {
           class: 'draggable-node',
           attrs: {
             'data-draggable': 'true'
@@ -444,7 +444,7 @@ describe('Tree 组件 - renderContent 自定义渲染', () => {
     it('应该与过滤功能正常配合', async () => {
       const renderContent = (h, { node, data }) => {
         return h('div', { class: 'filterable-node' }, [
-          h('span', { 
+          h('span', {
             class: node.visible ? 'visible-label' : 'hidden-label'
           }, data.label)
         ])
@@ -550,7 +550,7 @@ describe('Tree 组件 - renderContent 自定义渲染', () => {
         })
       }
 
-      const renderContent = vi.fn((h, { node, data }) => {
+      const renderContent = vi.fn((h, { _node, data }) => {
         return h('div', { class: 'performance-node' }, [
           h('span', { class: 'node-type' }, data.type),
           h('span', { class: 'node-label' }, data.label)
@@ -582,7 +582,7 @@ describe('Tree 组件 - renderContent 自定义渲染', () => {
     })
 
     it('renderContent 应该只在必要时被调用', async () => {
-      const renderContent = vi.fn((h, { node, data }) => {
+      const renderContent = vi.fn((h, { _node, data }) => {
         return h('span', data.label)
       })
 

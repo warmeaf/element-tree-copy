@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import Tree from '../src/tree.vue'
 
 describe('Tree 组件 - 渲染优先级', () => {
@@ -19,7 +19,7 @@ describe('Tree 组件 - 渲染优先级', () => {
 
   describe('renderContent 优先级最高', () => {
     it('当同时提供 renderContent 和默认插槽时，应该优先使用 renderContent', async () => {
-      const renderContent = vi.fn((h, { node, data }) => {
+      const renderContent = vi.fn((h, { _node, data }) => {
         return h('span', { class: 'render-content-node' }, `RC: ${data.label}`)
       })
 
@@ -54,7 +54,7 @@ describe('Tree 组件 - 渲染优先级', () => {
     })
 
     it('当同时提供 renderContent、默认插槽和默认渲染时，应该优先使用 renderContent', async () => {
-      const renderContent = vi.fn((h, { node, data }) => {
+      const renderContent = vi.fn((h, { _node, data }) => {
         return h('div', { class: 'render-content-priority' }, [
           h('i', { class: 'rc-icon' }),
           h('span', `RC Priority: ${data.label}`)
@@ -98,7 +98,7 @@ describe('Tree 组件 - 渲染优先级', () => {
     })
 
     it('renderContent 返回 null 时应该降级到默认插槽', async () => {
-      const renderContent = vi.fn((h, { node, data }) => {
+      const renderContent = vi.fn((h, { _node, data }) => {
         // 对特定节点返回 null
         if (data.id === 1) {
           return null
@@ -263,11 +263,11 @@ describe('Tree 组件 - 渲染优先级', () => {
 
   describe('动态切换渲染方式', () => {
     it('应该能够动态切换 renderContent', async () => {
-      const renderContent1 = vi.fn((h, { node, data }) => {
+      const renderContent1 = vi.fn((h, { _node, data }) => {
         return h('span', { class: 'render-v1' }, `V1: ${data.label}`)
       })
 
-      const renderContent2 = vi.fn((h, { node, data }) => {
+      const renderContent2 = vi.fn((h, { _node, data }) => {
         return h('span', { class: 'render-v2' }, `V2: ${data.label}`)
       })
 
@@ -340,7 +340,7 @@ describe('Tree 组件 - 渲染优先级', () => {
     it('renderContent 抛出异常时应该降级到默认插槽', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-      const renderContent = vi.fn((h, { node, data }) => {
+      const renderContent = vi.fn((h, { _node, data }) => {
         if (data.id === 1) {
           throw new Error('RenderContent error')
         }
@@ -452,7 +452,7 @@ describe('Tree 组件 - 渲染优先级', () => {
         })
       }
 
-      const renderContent = vi.fn((h, { node, data }) => {
+      const renderContent = vi.fn((h, { _node, data }) => {
         return h('span', { class: 'perf-render' }, `RC: ${data.label}`)
       })
 
@@ -489,8 +489,8 @@ describe('Tree 组件 - 渲染优先级', () => {
     })
 
     it('频繁切换渲染方式不应该造成内存泄漏', async () => {
-      const renderContent1 = (h, { node, data }) => h('span', `RC1: ${data.label}`)
-      const renderContent2 = (h, { node, data }) => h('span', `RC2: ${data.label}`)
+      const renderContent1 = (h, { _node, data }) => h('span', `RC1: ${data.label}`)
+      const renderContent2 = (h, { _node, data }) => h('span', `RC2: ${data.label}`)
 
       wrapper = mount(Tree, {
         propsData: {

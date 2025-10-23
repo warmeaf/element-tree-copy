@@ -656,7 +656,7 @@ describe('拖拽工具函数', () => {
       expect(() => {
         try {
           mockDataTransfer.setData('text/plain', 'test')
-        } catch (error) {
+        } catch {
           // 优雅处理异常，不中断拖拽流程
         }
       }).not.toThrow()
