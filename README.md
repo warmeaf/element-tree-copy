@@ -1,818 +1,258 @@
-# Tree 组件复刻步骤
+# Element Tree Copy
 
-> 本文档基于 **架构 + 数据结构 + 经验** 公式，提供渐进式的 Tree 组件复刻实现路径。
+## TreeStore 和 Node 类关系图
 
----
-
-## 复刻原则
-
-1. **循序渐进**：从简单到复杂，每一步都有可运行的成果
-2. **架构优先**：先搭建分层架构，再填充功能细节
-3. **数据驱动**：先实现数据模型，再实现视图渲染
-4. **测试验证**：每完成一步，必须通过功能验证
-
----
-
-## Step 1: 搭建项目基础架构（数据结构 - 目录结构）
-
-### 📋 本步目标
-
-创建 Tree 组件的目录结构和文件骨架，建立清晰的分层架构。
-
-### ✅ 要达到的效果
-
-- 完成三层架构的目录划分（视图层、数据模型层、工具层）
-- 所有文件创建完成，但只包含基本骨架代码
-- 组件可以在页面中引入，但暂时只显示一个空的 div
-
-### 🎯 该做什么
-
-1. **创建目录结构**：
-
-   ```
-   tree/
-   ├── index.js                    # 入口文件
-   ├── src/
-   │   ├── tree.vue               # 树容器组件
-   │   ├── tree-node.vue          # 树节点组件
-   │   └── model/
-   │       ├── node.js            # Node 类
-   │       ├── tree-store.js      # TreeStore 类
-   │       └── util.js            # 工具函数
-   ```
-
-2. **创建 index.js**：
-
-   ```javascript
-   import Tree from './src/tree.vue'
-
-   Tree.install = function (Vue) {
-     Vue.component(Tree.name, Tree)
-   }
-
-   export default Tree
-   ```
-
-3. **创建 tree.vue 骨架**：
-
-   ```vue
-   <template>
-     <div class="el-tree" role="tree">
-       <!-- 待实现 -->
-     </div>
-   </template>
-
-   <script>
-   export default {
-     name: 'ElTree',
-     props: {
-       data: Array,
-     },
-     data() {
-       return {
-         store: null,
-         root: null,
-       }
-     },
-   }
-   </script>
-   ```
-
-4. **创建 tree-node.vue 骨架**：
-
-   ```vue
-   <template>
-     <div class="el-tree-node" role="treeitem">
-       <!-- 待实现 -->
-     </div>
-   </template>
-
-   <script>
-   export default {
-     name: 'ElTreeNode',
-     props: {
-       node: Object,
-     },
-   }
-   </script>
-   ```
-
-5. **创建空的 model 文件**：
-
-   ```javascript
-   // model/node.js
-   export default class Node {}
-
-   // model/tree-store.js
-   export default class TreeStore {}
-
-   // model/util.js
-   export const getNodeKey = function() {};
-   ```
-
-### ❌ 不该做什么
-
-- ❌ 不要实现任何业务逻辑
-- ❌ 不要添加样式代码
-- ❌ 不要处理数据转换
-- ❌ 不要考虑性能优化
-
-### 🌿 分支命名
-
-```bash
-git checkout -b feature/tree-step1-architecture
+```mermaid
+classDiagram
+    class TreeStore {
+        -Object nodesMap
+        -Node root
+        -Node currentNode
+        -String currentNodeKey
+        -String key
+        -Array data
+        -Object props
+        -Boolean lazy
+        -Boolean defaultExpandAll
+        
+        +constructor(options)
+        +registerNode(node)
+        +deregisterNode(node)
+        +getNode(data) Node
+        +setData(newVal)
+        +append(data, parentData)
+        +insertBefore(data, refData)
+        +insertAfter(data, refData)
+        +remove(data)
+        +setCurrentNode(currentNode)
+        +getCurrentNode() Node
+        +setCurrentNodeKey(key)
+    }
+    
+    class Node {
+        -Number id
+        -String text
+        -Object data
+        -Node parent
+        -Number level
+        -Array~Node~ childNodes
+        -TreeStore store
+        -Boolean expanded
+        -Boolean visible
+        -Boolean checked
+        -Boolean indeterminate
+        -Boolean isCurrent
+        -Boolean isLeaf
+        -Boolean loaded
+        -Boolean loading
+        -Boolean isLeafByUser
+        
+        +constructor(options)
+        +setData(data)
+        +label String
+        +key String
+        +insertChild(child, index)
+        +insertBefore(child, ref)
+        +insertAfter(child, ref)
+        +remove()
+        +removeChild(child)
+        +expand()
+        +collapse()
+        +updateLeafState()
+    }
+    
+    TreeStore "1" --> "1" Node : root
+     TreeStore "1" --> "*" Node : nodesMap
+     TreeStore "1" --> "0..1" Node : currentNode
+     Node "1" --> "0..1" Node : parent
+     Node "1" --> "*" Node : childNodes
+     Node "*" --> "1" TreeStore : store
 ```
 
-### ✔️ 验收标准
+### 关系表示法说明
+- `"1"` 表示一对一关系
+- `"*"` 表示一对多关系  
+- `"0..1"` 表示零或一的关系
+- `-->` 表示关联关系
 
-- [ ] 目录结构完整，符合三层架构
-- [ ] 所有文件已创建，无语法错误
-- [ ] 组件可以在测试页面中引入并渲染（显示空 div）
-- [ ] 代码通过 ESLint 检查
+### 类关系对应说明
+1. **TreeStore "1" --> "1" Node : root**
+   - TreeStore 拥有一个根节点，每个 TreeStore 实例都有且仅有一个根节点
 
----
+2. **TreeStore "1" --> "*" Node : nodesMap**
+   - TreeStore 通过 nodesMap 管理多个节点，一个 TreeStore 可以包含任意数量的节点
 
-## Step 2: 实现 Node 数据模型（数据结构 - Node 类）
+3. **TreeStore "1" --> "0..1" Node : currentNode**
+   - TreeStore 可以有一个当前选中的节点，也可以没有当前节点
 
-### 📋 本步目标
+4. **Node "1" --> "0..1" Node : parent**
+   - 每个节点可以有一个父节点，根节点没有父节点
 
-实现 Node 类，构建树节点的数据模型，建立父子双向引用关系。
+5. **Node "1" --> "*" Node : childNodes**
+   - 每个节点可以有多个子节点，叶子节点没有子节点
 
-### ✅ 要达到的效果
+6. **Node "*" --> "1" TreeStore : store**
+   - 多个节点都属于同一个 TreeStore，每个节点都必须有对应的 TreeStore 引用
 
-- Node 类可以创建节点实例
-- 节点具备基本属性（id, level, data, parent, childNodes）
-- 可以通过 setData 方法递归创建子节点
-- 节点具备基本操作方法（expand, collapse, insertChild, remove）
+### 代码实现层面的关系说明
 
-### 🎯 该做什么
-
-1. **实现 Node 类构造函数**：
-
-   ```javascript
-   let nodeIdSeed = 0
-
-   export default class Node {
-     constructor(options) {
-       // 基本属性
-       this.id = nodeIdSeed++
-       this.text = null
-       this.data = null
-       this.parent = null
-       this.level = 0
-       this.childNodes = []
-
-       // 状态属性（先声明，暂不实现逻辑）
-       this.expanded = false
-       this.visible = true
-       this.checked = false
-       this.indeterminate = false
-       this.isCurrent = false
-       this.isLeaf = false
-
-       // 懒加载相关
-       this.loaded = false
-       this.loading = false
-
-       // 复制 options 属性
-       for (let name in options) {
-         if (options.hasOwnProperty(name)) {
-           this[name] = options[name]
-         }
-       }
-
-       // 计算层级
-       if (this.parent) {
-         this.level = this.parent.level + 1
-       }
-
-       // 注册到 store
-       const store = this.store
-       if (!store) {
-         throw new Error('[Node]store is required!')
-       }
-       store.registerNode(this)
-
-       // 设置数据（如果不是懒加载）
-       if (store.lazy !== true && this.data) {
-         this.setData(this.data)
-       }
-
-       this.updateLeafState()
-     }
-   }
-   ```
-
-2. **实现 setData 方法**（递归创建子节点）：
-
-   ```javascript
-   setData(data) {
-     this.data = data;
-     this.childNodes = [];
-
-     let children;
-     if (this.level === 0 && this.data instanceof Array) {
-       children = this.data;  // 根节点的 data 就是数组
-     } else {
-       // 从配置中获取 children 字段
-       const childrenKey = this.store.props?.children || 'children';
-       children = data[childrenKey] || [];
-     }
-
-     // 递归创建子节点
-     for (let i = 0, j = children.length; i < j; i++) {
-       this.insertChild({ data: children[i] });
-     }
-   }
-   ```
-
-3. **实现节点操作方法**：
-
-   ```javascript
-   // 插入子节点
-   insertChild(child, index) {
-     if (!child) throw new Error('insertChild error: child is required.');
-
-     if (!(child instanceof Node)) {
-       Object.assign(child, {
-         parent: this,
-         store: this.store
-       });
-       child = new Node(child);
-     }
-
-     child.level = this.level + 1;
-
-     if (typeof index === 'undefined' || index < 0) {
-       this.childNodes.push(child);
-     } else {
-       this.childNodes.splice(index, 0, child);
-     }
-
-     this.updateLeafState();
-   }
-
-   // 移除节点
-   remove() {
-     const parent = this.parent;
-     if (parent) {
-       parent.removeChild(this);
-     }
-   }
-
-   removeChild(child) {
-     const index = this.childNodes.indexOf(child);
-     if (index > -1) {
-       this.store && this.store.deregisterNode(child);
-       child.parent = null;
-       this.childNodes.splice(index, 1);
-     }
-     this.updateLeafState();
-   }
-
-   // 展开收起（暂时只修改状态）
-   expand() {
-     this.expanded = true;
-   }
-
-   collapse() {
-     this.expanded = false;
-   }
-
-   // 更新叶子节点状态
-   updateLeafState() {
-     this.isLeaf = this.childNodes.length === 0;
-   }
-   ```
-
-4. **实现动态属性 getter**：
-
-   ```javascript
-   get label() {
-     const labelKey = this.store.props?.label || 'label';
-     return this.data?.[labelKey];
-   }
-
-   get key() {
-     const nodeKey = this.store.key;
-     if (this.data) return this.data[nodeKey];
-     return null;
-   }
-   ```
-
-### ❌ 不该做什么
-
-- ❌ 不要实现复选框逻辑（setChecked）
-- ❌ 不要实现懒加载逻辑（loadData）
-- ❌ 不要实现节点过滤功能
-- ❌ 不要处理事件触发
-
-### 🌿 分支命名
-
-```bash
-git checkout -b feature/tree-step2-node-model
+#### 1. TreeStore 与根节点 (root) 的实现
+```javascript
+// 在 TreeStore 构造函数中创建根节点
+constructor(options) {
+  // ...其他初始化代码
+  this.root = new Node({
+    data: this.data,
+    store: this
+  });
+}
 ```
 
-### ✔️ 验收标准
+#### 2. TreeStore 与节点映射表 (nodesMap) 的实现
+```javascript
+// TreeStore 中的节点注册机制
+registerNode(node) {
+  const key = this.key;
+  if (!key || !node || !node.data) return;
+  
+  const nodeKey = node.key;
+  if (nodeKey !== undefined) {
+    this.nodesMap[node.key] = node; // 将节点添加到映射表
+  }
+}
 
-- [ ] 可以创建 Node 实例，包含完整属性
-- [ ] setData 可以递归创建子节点树
-- [ ] 父子节点正确建立双向引用（parent 和 childNodes）
-- [ ] 节点层级（level）计算正确
-- [ ] insertChild 和 remove 方法工作正常
-- [ ] 通过单元测试验证基本功能
-
----
-
-## Step 3: 实现 TreeStore 状态管理（数据结构 - TreeStore 类）
-
-### 📋 本步目标
-
-实现 TreeStore 类，作为全局状态管理中心，管理所有节点实例。
-
-### ✅ 要达到的效果
-
-- TreeStore 可以接收配置参数并初始化
-- 创建根节点（root），并递归创建整棵树
-- 维护 nodesMap 映射表，实现快速节点查找
-- 提供节点的增删改查方法
-
-### 🎯 该做什么
-
-1. **实现 TreeStore 构造函数**：
-
-   ```javascript
-   import Node from './node'
-   import { getNodeKey } from './util'
-
-   export default class TreeStore {
-     constructor(options) {
-       this.currentNode = null
-       this.currentNodeKey = null
-
-       // 复制配置
-       for (let option in options) {
-         if (options.hasOwnProperty(option)) {
-           this[option] = options[option]
-         }
-       }
-
-       // 节点映射表
-       this.nodesMap = {}
-
-       // 创建根节点
-       this.root = new Node({
-         data: this.data,
-         store: this,
-       })
-     }
-   }
-   ```
-
-2. **实现节点注册和注销**：
-
-   ```javascript
-   registerNode(node) {
-     const key = this.key;
-     if (!key || !node || !node.data) return;
-
-     const nodeKey = node.key;
-     if (nodeKey !== undefined) {
-       this.nodesMap[node.key] = node;
-     }
-   }
-
-   deregisterNode(node) {
-     const key = this.key;
-     if (!key || !node || !node.data) return;
-
-     // 递归注销子节点
-     node.childNodes.forEach(child => {
-       this.deregisterNode(child);
-     });
-
-     delete this.nodesMap[node.key];
-   }
-   ```
-
-3. **实现节点查找**：
-
-   ```javascript
-   getNode(data) {
-     if (data instanceof Node) return data;
-     const key = typeof data !== 'object' ? data : getNodeKey(this.key, data);
-     return this.nodesMap[key] || null;
-   }
-   ```
-
-4. **实现节点增删操作**：
-
-   ```javascript
-   append(data, parentData) {
-     const parentNode = parentData ? this.getNode(parentData) : this.root;
-     if (parentNode) {
-       parentNode.insertChild({ data });
-     }
-   }
-
-   insertBefore(data, refData) {
-     const refNode = this.getNode(refData);
-     refNode.parent.insertBefore({ data }, refNode);
-   }
-
-   insertAfter(data, refData) {
-     const refNode = this.getNode(refData);
-     refNode.parent.insertAfter({ data }, refNode);
-   }
-
-   remove(data) {
-     const node = this.getNode(data);
-     if (node && node.parent) {
-       if (node === this.currentNode) {
-         this.currentNode = null;
-       }
-       node.parent.removeChild(node);
-     }
-   }
-   ```
-
-5. **实现数据更新**：
-
-   ```javascript
-   setData(newVal) {
-     const instanceChanged = newVal !== this.root.data;
-     if (instanceChanged) {
-       this.root.setData(newVal);
-     } else {
-       this.root.updateChildren();
-     }
-   }
-   ```
-
-6. **实现当前节点管理**：
-
-   ```javascript
-   setCurrentNode(currentNode) {
-     const prevCurrentNode = this.currentNode;
-     if (prevCurrentNode) {
-       prevCurrentNode.isCurrent = false;
-     }
-     this.currentNode = currentNode;
-     this.currentNode.isCurrent = true;
-   }
-
-   getCurrentNode() {
-     return this.currentNode;
-   }
-
-   setCurrentNodeKey(key) {
-     if (key === null || key === undefined) {
-       this.currentNode && (this.currentNode.isCurrent = false);
-       this.currentNode = null;
-       return;
-     }
-     const node = this.getNode(key);
-     if (node) {
-       this.setCurrentNode(node);
-     }
-   }
-   ```
-
-### ❌ 不该做什么
-
-- ❌ 不要实现复选框相关方法（getCheckedNodes、setCheckedKeys）
-- ❌ 不要实现过滤功能（filter）
-- ❌ 不要实现懒加载逻辑
-- ❌ 不要实现默认展开/选中的初始化
-
-### 🌿 分支命名
-
-```bash
-git checkout -b feature/tree-step3-tree-store
+// 通过映射表快速查找节点
+getNode(data) {
+  if (data instanceof Node) return data;
+  const key = typeof data !== 'object' ? data : getNodeKey(this.key, data);
+  return this.nodesMap[key] || null;
+}
 ```
 
-### ✔️ 验收标准
+#### 3. TreeStore 与当前节点 (currentNode) 的实现
+```javascript
+// 设置当前节点
+setCurrentNode(currentNode) {
+  const prevCurrentNode = this.currentNode;
+  if (prevCurrentNode) {
+    prevCurrentNode.isCurrent = false; // 清除之前节点的当前状态
+  }
+  this.currentNode = currentNode; // 设置新的当前节点
+  this.currentNode.isCurrent = true;
+}
 
-- [ ] TreeStore 可以接收配置并正确初始化
-- [ ] root 节点创建成功，树结构正确
-- [ ] nodesMap 正确维护所有节点引用
-- [ ] getNode 可以通过 key 或 data 快速查找节点（O(1) 复杂度）
-- [ ] append、remove 等操作正常工作
-- [ ] 通过单元测试验证数据模型完整性
-
----
-
-## Step 4: 实现工具函数（数据结构 - util.js）
-
-### 📋 本步目标
-
-实现通用工具函数，为数据模型和视图层提供支持。
-
-### ✅ 要达到的效果
-
-- 节点标记功能（markNodeData）
-- 节点 key 获取（getNodeKey）
-- 组件查找工具（findNearestComponent）
-
-### 🎯 该做什么
-
-1. **实现节点标记**：
-
-   ```javascript
-   export const NODE_KEY = '$treeNodeId'
-
-   export const markNodeData = function (node, data) {
-     if (!data || data[NODE_KEY]) return
-     Object.defineProperty(data, NODE_KEY, {
-       value: node.id,
-       enumerable: false, // 不可枚举
-       configurable: false, // 不可配置
-       writable: false, // 不可写
-     })
-   }
-   ```
-
-2. **实现 key 获取**：
-
-   ```javascript
-   export const getNodeKey = function (key, data) {
-     if (!key) return data[NODE_KEY]
-     return data[key]
-   }
-   ```
-
-3. **实现组件查找**（用于拖拽）：
-
-   ```javascript
-   export const findNearestComponent = (element, componentName) => {
-     let target = element
-     while (target && target.tagName !== 'BODY') {
-       if (target.__vue__ && target.__vue__.$options.name === componentName) {
-         return target.__vue__
-       }
-       target = target.parentNode
-     }
-     return null
-   }
-   ```
-
-4. **在 Node 构造函数中调用 markNodeData**：
-
-   ```javascript
-   // node.js
-   import { markNodeData, NODE_KEY } from './util';
-
-   constructor(options) {
-     // ... 其他代码
-     if (!Array.isArray(this.data)) {
-       markNodeData(this, this.data);
-     }
-   }
-   ```
-
-### ❌ 不该做什么
-
-- ❌ 不要添加不必要的工具函数
-- ❌ 不要在工具函数中处理业务逻辑
-
-### 🌿 分支命名
-
-```bash
-git checkout -b feature/tree-step4-utils
+// 通过 key 设置当前节点
+setCurrentNodeKey(key) {
+  if (key === null || key === undefined) {
+    this.currentNode && (this.currentNode.isCurrent = false);
+    this.currentNode = null; // 可以设置为 null
+    return;
+  }
+  const node = this.getNode(key);
+  if (node) {
+    this.setCurrentNode(node);
+  }
+}
 ```
 
-### ✔️ 验收标准
+#### 4. Node 与父节点 (parent) 的实现
+```javascript
+// 在 Node 构造函数中设置父节点关系
+constructor(options) {
+  this.parent = null; // 初始化为 null
+  // ...复制 options 属性
+  for (let name in options) {
+    if (Object.prototype.hasOwnProperty.call(options, name)) {
+      this[name] = options[name]; // 包括 parent 属性
+    }
+  }
+}
 
-- [ ] markNodeData 正确为数据对象添加不可枚举的节点 ID
-- [ ] getNodeKey 可以根据配置获取节点唯一标识
-- [ ] findNearestComponent 可以查找最近的 Vue 组件实例
-- [ ] 通过单元测试验证工具函数
-
----
-
-## Step 5: 实现基础树渲染（架构 - 递归组件）
-
-### 📋 本步目标
-
-将数据模型与视图层连接，实现树的基础渲染，展示树形结构。
-
-### ✅ 要达到的效果
-
-- tree.vue 创建 TreeStore 实例并渲染根节点的子节点
-- tree-node.vue 递归渲染节点，显示节点文本
-- 树形结构正确显示，层级缩进清晰
-
-### 🎯 该做什么
-
-1. **完善 tree.vue**：
-
-   ```vue
-   <template>
-     <div class="el-tree" role="tree">
-       <el-tree-node
-         v-for="child in root.childNodes"
-         :node="child"
-         :props="props"
-         :key="getNodeKey(child)"
-       ></el-tree-node>
-
-       <div class="el-tree__empty-block" v-if="isEmpty">
-         <span class="el-tree__empty-text">{{ emptyText }}</span>
-       </div>
-     </div>
-   </template>
-
-   <script>
-   import TreeStore from './model/tree-store'
-   import { getNodeKey } from './model/util'
-   import ElTreeNode from './tree-node.vue'
-
-   export default {
-     name: 'ElTree',
-
-     components: {
-       ElTreeNode,
-     },
-
-     props: {
-       data: {
-         type: Array,
-       },
-       emptyText: {
-         type: String,
-         default: '暂无数据',
-       },
-       nodeKey: String,
-       props: {
-         default() {
-           return {
-             children: 'children',
-             label: 'label',
-             disabled: 'disabled',
-           }
-         },
-       },
-       defaultExpandAll: Boolean,
-     },
-
-     data() {
-       return {
-         store: null,
-         root: null,
-       }
-     },
-
-     computed: {
-       isEmpty() {
-         const { childNodes } = this.root
-         return !childNodes || childNodes.length === 0
-       },
-     },
-
-     methods: {
-       getNodeKey(node) {
-         return getNodeKey(this.nodeKey, node.data)
-       },
-     },
-
-     created() {
-       this.isTree = true
-
-       this.store = new TreeStore({
-         key: this.nodeKey,
-         data: this.data,
-         props: this.props,
-         defaultExpandAll: this.defaultExpandAll,
-       })
-
-       this.root = this.store.root
-     },
-   }
-   </script>
-   ```
-
-2. **完善 tree-node.vue**（递归渲染）：
-
-   ```vue
-   <template>
-     <div
-       class="el-tree-node"
-       v-show="node.visible"
-       :class="{
-         'is-expanded': expanded,
-         'is-current': node.isCurrent,
-         'is-hidden': !node.visible,
-       }"
-       role="treeitem"
-     >
-       <div
-         class="el-tree-node__content"
-         :style="{ 'padding-left': (node.level - 1) * 18 + 'px' }"
-       >
-         <!-- 展开图标 -->
-         <span
-           :class="[
-             { 'is-leaf': node.isLeaf, expanded: !node.isLeaf && expanded },
-             'el-tree-node__expand-icon',
-             'el-icon-caret-right',
-           ]"
-         ></span>
-
-         <!-- 节点文本 -->
-         <span class="el-tree-node__label">{{ node.label }}</span>
-       </div>
-
-       <!-- 递归渲染子节点 -->
-       <div class="el-tree-node__children" v-show="expanded" role="group">
-         <el-tree-node
-           v-for="child in node.childNodes"
-           :node="child"
-           :key="getNodeKey(child)"
-         ></el-tree-node>
-       </div>
-     </div>
-   </template>
-
-   <script>
-   import { getNodeKey } from './model/util'
-
-   export default {
-     name: 'ElTreeNode',
-
-     props: {
-       node: {
-         default() {
-           return {}
-         },
-       },
-     },
-
-     data() {
-       return {
-         tree: null,
-         expanded: false,
-       }
-     },
-
-     watch: {
-       'node.expanded'(val) {
-         this.$nextTick(() => (this.expanded = val))
-       },
-     },
-
-     methods: {
-       getNodeKey(node) {
-         return getNodeKey(this.tree.nodeKey, node.data)
-       },
-     },
-
-     created() {
-       const parent = this.$parent
-
-       // 向上查找 tree 根组件
-       if (parent.isTree) {
-         this.tree = parent
-       } else {
-         this.tree = parent.tree
-       }
-
-       // 同步展开状态
-       if (this.node.expanded) {
-         this.expanded = true
-       }
-     },
-   }
-   </script>
-   ```
-
-3. **处理 defaultExpandAll**：
-   ```javascript
-   // node.js - constructor 中
-   if (store.defaultExpandAll) {
-     this.expanded = true
-   }
-   ```
-
-### ❌ 不该做什么
-
-- ❌ 不要实现点击交互
-- ❌ 不要实现展开/收起动画
-- ❌ 不要实现复选框
-- ❌ 不要处理拖拽
-
-### 🌿 分支命名
-
-```bash
-git checkout -b feature/tree-step5-basic-render
+// 插入子节点时建立父子关系
+insertChild(child, index) {
+  if (!(child instanceof Node)) {
+    Object.assign(child, {
+      parent: this, // 设置父节点引用
+      store: this.store
+    });
+    child = new Node(child);
+  }
+}
 ```
 
-### ✔️ 验收标准
+#### 5. Node 与子节点 (childNodes) 的实现
+```javascript
+// Node 构造函数中初始化子节点数组
+constructor(options) {
+  this.childNodes = []; // 初始化空数组
+}
 
-- [ ] 树形结构正确渲染在页面上
-- [ ] 节点层级缩进正确（每层 18px）
-- [ ] 节点文本正确显示（支持自定义 label 字段）
-- [ ] defaultExpandAll 配置生效
-- [ ] 空数据时显示"暂无数据"提示
-- [ ] 递归组件工作正常，支持任意层级
+// 插入子节点
+insertChild(child, index) {
+  // ...创建子节点实例
+  if (typeof index === 'undefined' || index < 0) {
+    this.childNodes.push(child); // 添加到末尾
+  } else {
+    this.childNodes.splice(index, 0, child); // 插入到指定位置
+  }
+}
 
----
+// 移除子节点
+removeChild(child) {
+  const index = this.childNodes.indexOf(child);
+  if (index > -1) {
+    this.store && this.store.deregisterNode(child);
+    child.parent = null; // 清除父节点引用
+    this.childNodes.splice(index, 1); // 从数组中移除
+  }
+}
+```
+
+#### 6. Node 与 TreeStore (store) 的实现
+```javascript
+// Node 构造函数中建立与 TreeStore 的关系
+constructor(options) {
+  // ...其他初始化
+  const store = this.store;
+  if (!store) {
+    throw new Error('[Node]store is required!'); // 强制要求 store
+  }
+  store.registerNode(this); // 将自己注册到 TreeStore
+}
+
+// 通过 store 访问全局配置和方法
+get key() {
+  const nodeKey = this.store.key; // 使用 store 的 key 配置
+  if (this.data) return this.data[nodeKey];
+  return null;
+}
+```
+
+这些实现展示了如何在代码层面维护类图中定义的各种关系，确保数据结构的完整性和一致性。
+
+## 关系说明
+
+### TreeStore 类
+- **作用**: 树形数据的存储和管理中心
+- **核心属性**:
+  - `root`: 根节点，类型为 Node
+  - `nodesMap`: 节点映射表，用于快速查找节点
+  - `currentNode`: 当前选中的节点
+  - `data`: 原始数据数组
+  - `props`: 属性配置对象
+
+### Node 类
+- **作用**: 树形结构中的单个节点
+- **核心属性**:
+  - `parent`: 父节点引用
+  - `childNodes`: 子节点数组
+  - `store`: 所属的 TreeStore 实例
+  - `data`: 节点数据
+  - `level`: 节点层级
+
+### 数据关系
+1. **组合关系**: TreeStore 拥有一个根节点 (root)
+2. **聚合关系**: TreeStore 通过 nodesMap 管理多个节点
+3. **双向引用**: Node 持有 TreeStore 的引用，TreeStore 管理所有 Node
+4. **树形结构**: Node 之间通过 parent 和 childNodes 形成树形关系
+5. **当前节点**: TreeStore 维护当前选中节点的引用
