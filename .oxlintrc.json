@@ -1,0 +1,24 @@
+{
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2021": true
+  },
+  "plugins": ["vue"],
+  "rules": {
+    "no-console": "off",
+    "no-debugger": "warn",
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "no-unused-expressions": "off",
+    "vue/multi-word-component-names": "off",
+    "vue/require-default-prop": "off",
+    "vue/no-parsing-error": "off"
+  },
+  "ignorePatterns": ["node_modules/**", "dist/**", "origin-src/**"]
+}
