@@ -10,15 +10,15 @@
 
 ```javascript
 export const findNearestComponent = (element, componentName) => {
-  let target = element;
+  let target = element
   while (target && target.tagName !== 'BODY') {
     if (target.__vue__ && target.__vue__.$options.name === componentName) {
-      return target.__vue__;
+      return target.__vue__
     }
-    target = target.parentNode;
+    target = target.parentNode
   }
-  return null;
-};
+  return null
+}
 ```
 
 ### 参数说明
@@ -58,7 +58,7 @@ flowchart TD
     G --> C
     F --> I[结束]
     H --> I
-    
+
     style A fill:#e1f5fe
     style F fill:#c8e6c9
     style H fill:#ffcdd2
@@ -81,6 +81,25 @@ flowchart TD
     </div>
   </div>
 </body>
+```
+
+调用示例：
+
+```javascript
+// 找到起始节点
+const startNode = document.querySelector('.node-label')
+
+// 使用 findNearestComponent 方法查找最近的树组件实例
+const treeComponent = findNearestComponent(startNode, 'MyTree')
+
+// 如果找到组件，可以调用其方法
+if (treeComponent) {
+  console.log('找到树组件实例:', treeComponent)
+  // 调用组件方法
+  treeComponent.expandAll()
+} else {
+  console.log('未找到指定的组件实例')
+}
 ```
 
 查找过程：
