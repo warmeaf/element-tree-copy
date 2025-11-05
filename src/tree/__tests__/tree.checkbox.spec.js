@@ -422,13 +422,29 @@ describe('Tree 组件 - 复选框功能', () => {
       const treeNode = wrapper.findComponent({ name: 'ElTreeNode' })
       const node = wrapper.vm.store.nodesMap[1]
 
-      // 模拟复选框变化
-      node.setChecked(true, false)
-      treeNode.vm.$emit('node-expand', node.data, node, treeNode.vm)
+      // 监听 check 事件
+      const checkEvents = []
+      wrapper.vm.$on('check', (...args) => {
+        checkEvents.push(args)
+      })
+
+      // 通过 handleCheckChange 模拟复选框变化（这是实际触发 check 事件的方式）
+      treeNode.vm.handleCheckChange(true, {
+        target: { checked: true }
+      })
       
       await wrapper.vm.$nextTick()
+      await wrapper.vm.$nextTick() // check 事件在 nextTick 中触发
 
-      // 验证 store 中的状态
+      // 验证事件被触发
+      expect(checkEvents).toHaveLength(1)
+      expect(checkEvents[0][0]).toEqual(node.data)
+      expect(checkEvents[0][1]).toHaveProperty('checkedNodes')
+      expect(checkEvents[0][1]).toHaveProperty('checkedKeys')
+      expect(checkEvents[0][1]).toHaveProperty('halfCheckedNodes')
+      expect(checkEvents[0][1]).toHaveProperty('halfCheckedKeys')
+      
+      // 验证状态已更新
       expect(node.checked).toBe(true)
     })
 
@@ -451,12 +467,67 @@ describe('Tree 组件 - 复选框功能', () => {
         }
       })
 
-      // 通过 API 设置选中
-      wrapper.vm.setChecked(data[0], true, true)
+      // 监听 check 事件
+      const checkEvents = []
+      wrapper.vm.$on('check', (...args) => {
+        checkEvents.push(args)
+      })
+
+      const treeNode = wrapper.findComponent({ name: 'ElTreeNode' })
+      const node = wrapper.vm.store.nodesMap[1]
+
+      // 通过 handleCheckChange 触发事件
+      treeNode.vm.handleCheckChange(true, {
+        target: { checked: true }
+      })
+      
+      await wrapper.vm.$nextTick()
       await wrapper.vm.$nextTick()
 
-      const node = wrapper.vm.store.nodesMap[1]
+      // 验证事件参数
+      expect(checkEvents).toHaveLength(1)
+      expect(checkEvents[0][0]).toEqual(node.data)
+      expect(checkEvents[0][1].checkedNodes).toContainEqual(node.data)
+      expect(checkEvents[0][1].checkedKeys).toContain(1)
       expect(node.checked).toBe(true)
+    })
+
+    it('节点状态变化时触发 check-change 事件', async () => {
+      const data = [
+        { id: 1, label: '节点1' }
+      ]
+
+      const wrapper = mount(Tree, {
+        propsData: {
+          data,
+          nodeKey: 'id',
+          showCheckbox: true
+        }
+      })
+
+      const treeNode = wrapper.findComponent({ name: 'ElTreeNode' })
+      const node = wrapper.vm.store.nodesMap[1]
+
+      // 监听 check-change 事件
+      const checkChangeEvents = []
+      wrapper.vm.$on('check-change', (...args) => {
+        checkChangeEvents.push(args)
+      })
+
+      // 通过 handleCheckChange 改变状态，这会触发 handleSelectChange
+      treeNode.vm.handleCheckChange(true, {
+        target: { checked: true }
+      })
+      
+      await wrapper.vm.$nextTick()
+      await wrapper.vm.$nextTick()
+
+      // 验证 check-change 事件被触发
+      expect(checkChangeEvents.length).toBeGreaterThan(0)
+      const lastEvent = checkChangeEvents[checkChangeEvents.length - 1]
+      expect(lastEvent[0]).toEqual(node.data)
+      expect(lastEvent[1]).toBe(true) // checked
+      expect(typeof lastEvent[2]).toBe('boolean') // indeterminate
     })
   })
 

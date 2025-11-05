@@ -213,11 +213,14 @@ describe('Node 模型 - 拖拽相关功能', () => {
     it('remove 根节点应该被阻止或特殊处理', () => {
       // 根节点通常不应该被移除，或者需要特殊处理
       // 这取决于具体实现
+      const originalParent = rootNode.parent
+      
+      // 尝试移除根节点
       rootNode.remove()
       
-      // 根节点移除后的行为取决于具体实现
-      // 这里只是确保不会出现错误
-      expect(true).toBe(true)
+      // 验证根节点的父节点应该保持不变（根节点不能被移除）
+      // 或者如果实现允许移除，验证不会抛出错误
+      expect(() => rootNode.remove()).not.toThrow()
     })
   })
 
