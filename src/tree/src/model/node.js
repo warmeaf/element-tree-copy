@@ -218,17 +218,29 @@ export default class Node {
   }
 
   contains(target, deep = true) {
-    const walk = function(parent) {
+    if (!target) return false;
+    // 节点不包含自身，只检查子节点
+    if (this === target) return false;
+    
+    /**
+     * 递归检查是否包含目标节点
+     * @param {Node} parent - 父节点
+     * @returns {boolean} 是否包含
+     */
+    const walk = (parent) => {
       const children = parent.childNodes || [];
-      let result = false;
-      for (let i = 0, j = children.length; i < j; i++) {
+      
+      for (let i = 0, len = children.length; i < len; i++) {
         const child = children[i];
-        if (child === target || (deep && walk(child))) {
-          result = true;
-          break;
+        if (child === target) {
+          return true;
+        }
+        if (deep && walk(child)) {
+          return true;
         }
       }
-      return result;
+      
+      return false;
     };
 
     return walk(this);
@@ -259,36 +271,44 @@ export default class Node {
 
   // 插入子节点
   insertChild(child, index, batch) {
-    if (!child) throw new Error('insertChild error: child is required.');
+    if (!child) {
+      throw new Error('insertChild error: child is required.');
+    }
 
+    // 如果 child 不是 Node 实例，需要创建
     if (!(child instanceof Node)) {
       // 如果不是 batch 模式，需要同步更新原数据
       if (!batch) {
         const children = this.getChildren(true);
         if (children && children.indexOf(child.data) === -1) {
-          if (typeof index === 'undefined' || index < 0) {
-            children.push(child.data);
-          } else {
-            children.splice(index, 0, child.data);
-          }
+          const insertIndex = typeof index === 'undefined' || index < 0 
+            ? children.length 
+            : Math.max(0, Math.min(index, children.length));
+          children.splice(insertIndex, 0, child.data);
         }
       }
-      Object.assign(child, {
+      
+      // 创建 Node 实例
+      child = new Node({
+        ...child,
         parent: this,
-        store: this.store
+        store: this.store,
       });
-      child = new Node(child);
     }
 
+    // 设置层级
     child.level = this.level + 1;
 
-    if (typeof index === 'undefined' || index < 0) {
-      this.childNodes.push(child);
-    } else {
-      this.childNodes.splice(index, 0, child);
-    }
+    // 插入到指定位置
+    const insertIndex = typeof index === 'undefined' || index < 0
+      ? this.childNodes.length
+      : Math.max(0, Math.min(index, this.childNodes.length));
+    
+    this.childNodes.splice(insertIndex, 0, child);
 
+    // 更新叶子节点状态
     this.updateLeafState();
+    
     return child;
   }
 
@@ -404,38 +424,53 @@ export default class Node {
 
   // 设置节点的选中状态
   setChecked(value, deep, recursion, passValue) {
+    // 处理半选状态
     this.indeterminate = value === 'half';
     this.checked = value === true;
 
+    // 严格模式：不关联父子节点
     if (this.store.checkStrictly) return;
 
+    // 处理子节点选中状态
     if (!(this.shouldLoadData() && !this.store.checkDescendants)) {
-      let { all, allWithoutDisable } = getChildState(this.childNodes);
+      const childState = getChildState(this.childNodes);
+      const { all, allWithoutDisable } = childState;
 
-      if (!this.isLeaf && (!all && allWithoutDisable)) {
+      // 如果子节点不全选且没有禁用节点全选，则取消选中
+      if (!this.isLeaf && !all && allWithoutDisable) {
         this.checked = false;
         value = false;
       }
 
+      /**
+       * 处理后代节点的选中状态
+       */
       const handleDescendants = () => {
-        if (deep) {
-          const childNodes = this.childNodes;
-          for (let i = 0, j = childNodes.length; i < j; i++) {
-            const child = childNodes[i];
-            passValue = passValue || value !== false;
-            const isCheck = child.disabled ? child.checked : passValue;
-            child.setChecked(isCheck, deep, true, passValue);
-          }
-          const { half, all } = getChildState(childNodes);
-          if (!all) {
-            this.checked = all;
-            this.indeterminate = half;
-          }
+        if (!deep) return;
+        
+        const childNodes = this.childNodes;
+        const childCount = childNodes.length;
+        
+        // 确定要传递的值
+        const finalPassValue = passValue || value !== false;
+        
+        // 批量处理子节点
+        for (let i = 0; i < childCount; i++) {
+          const child = childNodes[i];
+          const isCheck = child.disabled ? child.checked : finalPassValue;
+          child.setChecked(isCheck, deep, true, finalPassValue);
+        }
+        
+        // 重新计算父节点状态
+        const newChildState = getChildState(childNodes);
+        if (!newChildState.all) {
+          this.checked = newChildState.all;
+          this.indeterminate = newChildState.half;
         }
       };
 
+      // 懒加载处理
       if (this.shouldLoadData()) {
-        // 懒加载情况下，先加载数据再处理复选框
         this.loadData(() => {
           handleDescendants();
           reInitChecked(this);
@@ -448,6 +483,7 @@ export default class Node {
       }
     }
 
+    // 更新父节点状态
     const parent = this.parent;
     if (!parent || parent.level === 0) return;
 
@@ -487,9 +523,16 @@ export default class Node {
 
   // 根据数据数组创建子节点
   doCreateChildren(array, defaultProps = {}) {
-    array.forEach((item) => {
-      this.insertChild(Object.assign({ data: item }, defaultProps), undefined, true);
-    });
+    if (!Array.isArray(array)) return;
+    
+    // 批量创建子节点，使用 batch 模式提高性能
+    for (let i = 0, len = array.length; i < len; i++) {
+      this.insertChild(
+        { ...defaultProps, data: array[i] },
+        undefined,
+        true
+      );
+    }
   }
 }
 

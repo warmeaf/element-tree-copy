@@ -112,16 +112,18 @@ export default class TreeStore {
   updateChildren(key, data) {
     const node = this.nodesMap[key];
     if (!node) return;
+    
     const childNodes = node.childNodes;
-    // 先删除所有旧子节点
+    const dataLength = data ? data.length : 0;
+    
+    // 先删除所有旧子节点（从后往前删除，避免索引问题）
     for (let i = childNodes.length - 1; i >= 0; i--) {
-      const child = childNodes[i];
-      this.remove(child.data);
+      this.remove(childNodes[i].data);
     }
+    
     // 添加新子节点
-    for (let i = 0, j = data.length; i < j; i++) {
-      const child = data[i];
-      this.append(child, node.data);
+    for (let i = 0; i < dataLength; i++) {
+      this.append(data[i], node.data);
     }
   }
 
@@ -200,16 +202,29 @@ export default class TreeStore {
   // 获取所有选中的节点
   getCheckedNodes(leafOnly = false, includeHalfChecked = false) {
     const checkedNodes = [];
-    const traverse = function(node) {
+    
+    /**
+     * 递归遍历节点
+     * @param {Node} node - 当前节点
+     */
+    const traverse = (node) => {
       const childNodes = node.root ? node.root.childNodes : node.childNodes;
 
-      childNodes.forEach((child) => {
-        if ((child.checked || (includeHalfChecked && child.indeterminate)) && (!leafOnly || (leafOnly && child.isLeaf))) {
+      for (let i = 0, len = childNodes.length; i < len; i++) {
+        const child = childNodes[i];
+        
+        // 检查是否应该包含此节点
+        const shouldInclude =
+          (child.checked || (includeHalfChecked && child.indeterminate)) &&
+          (!leafOnly || (leafOnly && child.isLeaf));
+        
+        if (shouldInclude) {
           checkedNodes.push(child.data);
         }
 
+        // 递归处理子节点
         traverse(child);
-      });
+      }
     };
 
     traverse(this);
@@ -225,16 +240,23 @@ export default class TreeStore {
   // 获取所有半选状态的节点
   getHalfCheckedNodes() {
     const nodes = [];
-    const traverse = function(node) {
+    
+    /**
+     * 递归遍历节点
+     * @param {Node} node - 当前节点
+     */
+    const traverse = (node) => {
       const childNodes = node.root ? node.root.childNodes : node.childNodes;
 
-      childNodes.forEach((child) => {
+      for (let i = 0, len = childNodes.length; i < len; i++) {
+        const child = childNodes[i];
+        
         if (child.indeterminate) {
           nodes.push(child.data);
         }
 
         traverse(child);
-      });
+      }
     };
 
     traverse(this);
@@ -251,7 +273,9 @@ export default class TreeStore {
   _getAllNodes() {
     const allNodes = [];
     const nodesMap = this.nodesMap;
-    for (let nodeKey in nodesMap) {
+    
+    // 使用 Object.values 或 for...in 遍历
+    for (const nodeKey in nodesMap) {
       if (Object.prototype.hasOwnProperty.call(nodesMap, nodeKey)) {
         allNodes.push(nodesMap[nodeKey]);
       }
@@ -354,37 +378,50 @@ export default class TreeStore {
   filter(value) {
     const filterNodeMethod = this.filterNodeMethod;
     const lazy = this.lazy;
-    if (!filterNodeMethod) throw new Error('[Tree] filterNodeMethod is required when filter');
+    
+    if (!filterNodeMethod) {
+      throw new Error('[Tree] filterNodeMethod is required when filter');
+    }
 
-    const traverse = function(node) {
+    /**
+     * 检查子节点是否有可见的
+     * @param {Node} node - 节点
+     * @returns {boolean} 是否有可见子节点
+     */
+    const hasVisibleChild = (node) => {
       const childNodes = node.root ? node.root.childNodes : node.childNodes;
-      childNodes.forEach((child) => {
+      
+      for (let i = 0, len = childNodes.length; i < len; i++) {
+        const child = childNodes[i];
+        if (child.visible || hasVisibleChild(child)) {
+          return true;
+        }
+      }
+      
+      return false;
+    };
+
+    /**
+     * 递归遍历节点进行过滤
+     * @param {Node} node - 当前节点
+     */
+    const traverse = (node) => {
+      const childNodes = node.root ? node.root.childNodes : node.childNodes;
+      
+      for (let i = 0, len = childNodes.length; i < len; i++) {
+        const child = childNodes[i];
+        
+        // 应用过滤方法
         child.visible = filterNodeMethod.call(child, value, child.data, child);
 
-        if (!child.visible) {
-          // 如果当前节点不可见，检查其子节点是否有可见的
-          let hasVisibleChild = false;
-          const traverseChildren = function(node) {
-            const childNodes = node.root ? node.root.childNodes : node.childNodes;
-            childNodes.forEach((child) => {
-              if (child.visible) {
-                hasVisibleChild = true;
-                return;
-              }
-              traverseChildren(child);
-            });
-          };
-          traverseChildren(child);
-
-          // 如果有可见的子节点，父节点也显示出来
-          if (hasVisibleChild) {
-            child.visible = true;
-          }
+        // 如果当前节点不可见，检查其子节点是否有可见的
+        if (!child.visible && hasVisibleChild(child)) {
+          child.visible = true;
         }
 
         // 递归处理子节点
         traverse(child);
-      });
+      }
     };
 
     // 从根节点开始遍历
@@ -393,25 +430,18 @@ export default class TreeStore {
     // 如果是懒加载模式，需要处理未加载的节点
     if (lazy) {
       const allNodes = this._getAllNodes();
-      allNodes.forEach((node) => {
+      
+      for (let i = 0, len = allNodes.length; i < len; i++) {
+        const node = allNodes[i];
+        
         if (!node.visible && node.loaded && node.childNodes.length > 0) {
-          let hasVisibleChild = false;
-          const checkChildren = function(node) {
-            node.childNodes.forEach((child) => {
-              if (child.visible) {
-                hasVisibleChild = true;
-              } else {
-                checkChildren(child);
-              }
-            });
-          };
-          checkChildren(node);
-          if (hasVisibleChild) {
+          if (hasVisibleChild(node)) {
             node.visible = true;
           }
         }
-      });
+      }
     }
   }
 }
+
 

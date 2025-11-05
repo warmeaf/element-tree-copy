@@ -36,9 +36,10 @@
 
 <script>
 import TreeStore from './model/tree-store'
-import { getNodeKey, findNearestComponent } from './model/util'
+import { getNodeKey } from './model/util'
 import ElTreeNode from './tree-node.vue'
-import { addClass, removeClass } from './utils/dom'
+import { createDragHandler } from './utils/drag-handler'
+import { createKeyboardHandler } from './utils/keyboard-handler'
 
 export default {
   name: 'ElTree',
@@ -167,6 +168,7 @@ export default {
     },
 
     treeItemArray() {
+      if (!this.treeItems) return []
       return Array.prototype.slice.call(this.treeItems)
     },
   },
@@ -217,204 +219,47 @@ export default {
 
     this.root = this.store.root
 
-    // 拖拽事件监听
-    const dragState = this.dragState
+    // 初始化拖拽处理器（延迟到 mounted，确保 $el 已存在）
+    // 注意：拖拽处理器需要在 mounted 中初始化，因为需要访问 $el
+  },
+  
+  mounted() {
+    // 初始化拖拽处理器
+    if (this.draggable) {
+      const dragHandler = createDragHandler({
+        dragState: this.dragState,
+        allowDrag: this.allowDrag,
+        allowDrop: this.allowDrop,
+        store: this.store,
+        $emit: this.$emit.bind(this),
+        $refs: this.$refs,
+        $el: this.$el,
+      })
 
-    // 拖拽开始
-    this.$on('tree-node-drag-start', (event, treeNode) => {
-      if (
-        typeof this.allowDrag === 'function' &&
-        !this.allowDrag(treeNode.node)
-      ) {
-        event.preventDefault()
-        return false
-      }
-      event.dataTransfer.effectAllowed = 'move'
-
-      // 设置拖拽数据
-      try {
-        event.dataTransfer.setData('text/plain', '')
-      } catch (e) {
-        // Ignore IE11 error
-      }
-
-      dragState.draggingNode = treeNode
-      this.$emit('node-drag-start', treeNode.node, event)
+      // 注册拖拽事件
+      this.$on('tree-node-drag-start', dragHandler.handleDragStart)
+      this.$on('tree-node-drag-over', dragHandler.handleDragOver)
+      this.$on('tree-node-drag-end', dragHandler.handleDragEnd)
+      
+      // 保存引用以便清理
+      this._dragHandler = dragHandler
+    }
+    
+    this.initTabIndex()
+    // 初始化键盘处理器
+    this._keyboardHandler = createKeyboardHandler({
+      $el: this.$el,
     })
-
-    // 拖拽经过
-    this.$on('tree-node-drag-over', (event) => {
-      const dropNode = findNearestComponent(event.target, 'ElTreeNode')
-      const oldDropNode = dragState.dropNode
-      if (oldDropNode && oldDropNode !== dropNode) {
-        removeClass(oldDropNode.$el, 'is-drop-inner')
-      }
-      const draggingNode = dragState.draggingNode
-      if (!draggingNode || !dropNode) return
-
-      let dropPrev = true
-      let dropInner = true
-      let dropNext = true
-      let userAllowDropInner = true
-
-      if (typeof this.allowDrop === 'function') {
-        dropPrev = this.allowDrop(draggingNode.node, dropNode.node, 'prev')
-        userAllowDropInner = dropInner = this.allowDrop(
-          draggingNode.node,
-          dropNode.node,
-          'inner'
-        )
-        dropNext = this.allowDrop(draggingNode.node, dropNode.node, 'next')
-      }
-
-      event.dataTransfer.dropEffect = dropInner ? 'move' : 'none'
-
-      if ((dropPrev || dropInner || dropNext) && oldDropNode !== dropNode) {
-        if (oldDropNode) {
-          this.$emit(
-            'node-drag-leave',
-            draggingNode.node,
-            oldDropNode.node,
-            event
-          )
-        }
-        this.$emit('node-drag-enter', draggingNode.node, dropNode.node, event)
-      }
-
-      if (dropPrev || dropInner || dropNext) {
-        dragState.dropNode = dropNode
-      }
-
-      // 检查拖拽限制
-      if (dropNode.node.nextSibling === draggingNode.node) {
-        dropNext = false
-      }
-      if (dropNode.node.previousSibling === draggingNode.node) {
-        dropPrev = false
-      }
-      if (dropNode.node.contains(draggingNode.node, false)) {
-        dropInner = false
-      }
-      if (
-        draggingNode.node === dropNode.node ||
-        draggingNode.node.contains(dropNode.node)
-      ) {
-        dropPrev = false
-        dropInner = false
-        dropNext = false
-      }
-
-      const targetPosition = dropNode.$el.getBoundingClientRect()
-      const treePosition = this.$el.getBoundingClientRect()
-
-      let dropType
-      const prevPercent = dropPrev
-        ? dropInner
-          ? 0.25
-          : dropNext
-          ? 0.45
-          : 1
-        : -1
-      const nextPercent = dropNext
-        ? dropInner
-          ? 0.75
-          : dropPrev
-          ? 0.55
-          : 0
-        : 1
-
-      let indicatorTop = -9999
-      const distance = event.clientY - targetPosition.top
-      if (distance < targetPosition.height * prevPercent) {
-        dropType = 'before'
-      } else if (distance > targetPosition.height * nextPercent) {
-        dropType = 'after'
-      } else if (dropInner) {
-        dropType = 'inner'
-      } else {
-        dropType = 'none'
-      }
-
-      const iconPosition = dropNode.$el
-        .querySelector('.el-tree-node__expand-icon')
-        .getBoundingClientRect()
-      const dropIndicator = this.$refs.dropIndicator
-      if (dropType === 'before') {
-        indicatorTop = iconPosition.top - treePosition.top
-      } else if (dropType === 'after') {
-        indicatorTop = iconPosition.bottom - treePosition.top
-      }
-      dropIndicator.style.top = indicatorTop + 'px'
-      dropIndicator.style.left = iconPosition.right - treePosition.left + 'px'
-
-      if (dropType === 'inner') {
-        addClass(dropNode.$el, 'is-drop-inner')
-      } else {
-        removeClass(dropNode.$el, 'is-drop-inner')
-      }
-
-      dragState.showDropIndicator =
-        dropType === 'before' || dropType === 'after'
-      dragState.allowDrop = dragState.showDropIndicator || userAllowDropInner
-      dragState.dropType = dropType
-      this.$emit('node-drag-over', draggingNode.node, dropNode.node, event)
-    })
-
-    // 拖拽结束
-    this.$on('tree-node-drag-end', (event) => {
-      const { draggingNode, dropType, dropNode } = dragState
-      event.preventDefault()
-      event.dataTransfer.dropEffect = 'move'
-
-      if (draggingNode && dropNode) {
-        const draggingNodeCopy = { data: draggingNode.node.data }
-        if (dropType !== 'none') {
-          draggingNode.node.remove()
-        }
-        if (dropType === 'before') {
-          dropNode.node.parent.insertBefore(draggingNodeCopy, dropNode.node)
-        } else if (dropType === 'after') {
-          dropNode.node.parent.insertAfter(draggingNodeCopy, dropNode.node)
-        } else if (dropType === 'inner') {
-          dropNode.node.insertChild(draggingNodeCopy)
-        }
-        if (dropType !== 'none') {
-          this.store.registerNode(draggingNodeCopy)
-        }
-
-        removeClass(dropNode.$el, 'is-drop-inner')
-
-        this.$emit(
-          'node-drag-end',
-          draggingNode.node,
-          dropNode.node,
-          dropType,
-          event
-        )
-        if (dropType !== 'none') {
-          this.$emit(
-            'node-drop',
-            draggingNode.node,
-            dropNode.node,
-            dropType,
-            event
-          )
-        }
-      }
-      if (draggingNode && !dropNode) {
-        this.$emit('node-drag-end', draggingNode.node, null, dropType, event)
-      }
-
-      dragState.showDropIndicator = false
-      dragState.draggingNode = null
-      dragState.dropNode = null
-      dragState.allowDrop = true
-    })
+    this.$el.addEventListener('keydown', this.handleKeydown)
   },
 
-  mounted() {
-    this.initTabIndex()
-    this.$el.addEventListener('keydown', this.handleKeydown)
+  beforeDestroy() {
+    // 清理事件监听器
+    if (this.$el && this.handleKeydown) {
+      this.$el.removeEventListener('keydown', this.handleKeydown)
+    }
+    // 清理键盘处理器引用
+    this._keyboardHandler = null
   },
 
   updated() {
@@ -563,53 +408,11 @@ export default {
       }
     },
 
-    // 处理键盘事件
+    // 处理键盘事件（已移至 keyboard-handler.js）
     handleKeydown(ev) {
-      const currentItem = ev.target
-      if (!currentItem || currentItem.className.indexOf('el-tree-node') === -1) return
-      const keyCode = ev.keyCode
-      this.treeItems = this.$el.querySelectorAll('.is-focusable[role=treeitem]')
-
-      // 如果当前元素不在 treeItems 中，尝试找到第一个有 tabindex="0" 的元素
-      let currentIndex = this.treeItemArray.indexOf(currentItem)
-      if (currentIndex === -1 && this.treeItemArray.length > 0) {
-        // 找到当前有 tabindex="0" 的元素
-        for (let i = 0; i < this.treeItemArray.length; i++) {
-          if (this.treeItemArray[i].getAttribute('tabindex') === '0') {
-            currentIndex = i
-            break
-          }
-        }
-        // 如果还是找不到，使用第一个元素
-        if (currentIndex === -1) currentIndex = 0
-      }
-
-      let nextIndex
-
-      if ([38, 40].indexOf(keyCode) > -1) {
-        // up、down
-        ev.preventDefault()
-        if (keyCode === 38) {
-          // up
-          nextIndex = currentIndex !== 0 ? currentIndex - 1 : 0
-        } else {
-          nextIndex = (currentIndex < this.treeItemArray.length - 1) ? currentIndex + 1 : 0
-        }
-        this.treeItemArray[nextIndex].focus() // 选中
-      }
-
-      if ([37, 39].indexOf(keyCode) > -1) {
-        // left、right 控制展开收起
-        ev.preventDefault()
-        currentItem.click() // 选中节点并可能触发展开
-      }
-
-      // Enter 和 Space 键只处理 checkbox，不触发展开收起
-      const hasInput = currentItem.querySelector('[type="checkbox"]')
-      if ([13, 32].indexOf(keyCode) > -1 && hasInput) {
-        // space enter 选中 checkbox
-        ev.preventDefault()
-        hasInput.click()
+      // 调用键盘处理器
+      if (this._keyboardHandler) {
+        this._keyboardHandler(ev)
       }
     },
 

@@ -210,14 +210,15 @@ export default {
     },
 
     handleSelectChange(checked, indeterminate) {
-      if (
-        this.oldChecked !== checked ||
-        this.oldIndeterminate !== indeterminate
-      ) {
+      // 只在状态真正改变时触发事件，避免不必要的更新
+      const checkedChanged = this.oldChecked !== checked
+      const indeterminateChanged = this.oldIndeterminate !== indeterminate
+      
+      if (checkedChanged || indeterminateChanged) {
         this.tree.$emit('check-change', this.node.data, checked, indeterminate)
+        this.oldChecked = checked
+        this.oldIndeterminate = indeterminate
       }
-      this.oldChecked = checked
-      this.oldIndeterminate = indeterminate
     },
 
     handleExpandIconClick() {
@@ -234,7 +235,10 @@ export default {
 
     handleClick() {
       const store = this.tree.store
-      store.setCurrentNode(this.node)
+      const node = this.node
+      
+      // 设置当前节点
+      store.setCurrentNode(node)
       this.tree.$emit(
         'current-change',
         store.currentNode ? store.currentNode.data : null,
@@ -242,27 +246,36 @@ export default {
       )
       this.tree.currentNode = this
 
-      if (this.tree.expandOnClickNode) {
+      // 根据配置决定是否展开/收起
+      if (this.tree.expandOnClickNode && !node.isLeaf) {
         this.handleExpandIconClick()
       }
 
-      if (this.tree.checkOnClickNode && !this.node.disabled) {
+      // 根据配置决定是否切换选中状态
+      if (this.tree.checkOnClickNode && !node.disabled) {
         this.handleCheckChange(null, {
-          target: { checked: !this.node.checked },
+          target: { checked: !node.checked },
         })
       }
 
-      this.tree.$emit('node-click', this.node.data, this.node, this)
+      // 触发点击事件
+      this.tree.$emit('node-click', node.data, node, this)
     },
 
     handleCheckChange(value, ev) {
+      const node = this.node
+      
       // 如果是直接点击checkbox，value是checkbox传递的新值
       // 如果是通过代码调用，ev可能是undefined
       const checkedValue = ev && ev.target ? ev.target.checked : value
-      this.node.setChecked(checkedValue, !this.tree.checkStrictly)
+      
+      // 设置选中状态
+      node.setChecked(checkedValue, !this.tree.checkStrictly)
+      
+      // 在下一个 tick 触发事件，确保状态已更新
       this.$nextTick(() => {
         const store = this.tree.store
-        this.tree.$emit('check', this.node.data, {
+        this.tree.$emit('check', node.data, {
           checkedNodes: store.getCheckedNodes(),
           checkedKeys: store.getCheckedKeys(),
           halfCheckedNodes: store.getHalfCheckedNodes(),
